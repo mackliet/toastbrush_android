@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/andrew_button"
+            android:title="Andrew's Button" />
+        <item android:id="@+id/michael_button"
+            android:title="Michael's Button" />
+    </group>
+</menu>
