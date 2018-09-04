@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group android:checkableBehavior="single">
-        <item android:id="@+id/andrew_button"
-            android:title="Andrew's Button" />
-        <item android:id="@+id/michael_button"
-            android:title="Michael's Button" />
+        <item android:id="@+id/browse_button"
+            android:icon="@drawable/browse_image_icon"
+            android:title="Browse Toast Images" />
+        <item android:id="@+id/create_button"
+            android:icon="@drawable/create_image_icon"
+            android:title="Create Toast Image" />
+        <item android:id="@+id/settings_button"
+            android:icon="@drawable/settings_icon"
+            android:title="Settings" />
     </group>
 </menu>

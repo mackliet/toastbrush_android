@@ -7,63 +7,30 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 
 
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
- * {@link MichaelFragment.OnFragmentInteractionListener} interface
+ * {@link SettingsFragment.OnFragmentInteractionListener} interface
  * to handle interaction events.
- * Use the {@link MichaelFragment#newInstance} factory method to
+ * Use the {@link SettingsFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class MichaelFragment extends Fragment {
+public class SettingsFragment extends Fragment {
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-    private static final String WEATHER_REQUEST = "https://api.openweathermap.org/data/2.5/weather?units=imperial&id=5780993&APPID=7db747ea38c0f23cf84a1a138d5675cb";
 
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
 
     private OnFragmentInteractionListener mListener;
-    private TextView mTextView;
-    private View mThis;
-    private RequestQueue mRequestQueue;
-// ...
 
-
-    public MichaelFragment() {
+    public SettingsFragment() {
         // Required empty public constructor
-    }
-
-    public void onButtonPress(View view) {
-// Request a string response from the provided URL.
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, WEATHER_REQUEST,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // Display the first 500 characters of the response string.
-                        mTextView.setText(response);
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                mTextView.setText("That didn't work!");
-            }
-        });
-
-// Add the request to the RequestQueue.
-        mRequestQueue.add(stringRequest);
     }
 
     /**
@@ -72,11 +39,11 @@ public class MichaelFragment extends Fragment {
      *
      * @param param1 Parameter 1.
      * @param param2 Parameter 2.
-     * @return A new instance of fragment MichaelFragment.
+     * @return A new instance of fragment SettingsFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static MichaelFragment newInstance(String param1, String param2) {
-        MichaelFragment fragment = new MichaelFragment();
+    public static SettingsFragment newInstance(String param1, String param2) {
+        SettingsFragment fragment = new SettingsFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -96,15 +63,15 @@ public class MichaelFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_settings, container, false);
+    }
 
-
-        View myFragmentView = inflater.inflate(R.layout.fragment_michael, container, false);
-
-        mTextView = (TextView) myFragmentView.findViewById(R.id.weather_text);
-        mThis = myFragmentView;
-        // Instantiate the RequestQueue.
-        mRequestQueue = Volley.newRequestQueue(this.getContext());
-        return myFragmentView;
+    // TODO: Rename method, update argument and hook method into UI event
+    public void onButtonPressed(Uri uri) {
+        if (mListener != null) {
+            mListener.onFragmentInteraction(uri);
+        }
     }
 
     @Override

@@ -18,14 +18,16 @@ public class MainActivity
         AppCompatActivity
         implements
         NavigationView.OnNavigationItemSelectedListener,
-        AndrewFragment.OnFragmentInteractionListener,
-        MichaelFragment.OnFragmentInteractionListener
+        BrowseImageFragment.OnFragmentInteractionListener,
+        CreateImageFragment.OnFragmentInteractionListener,
+        SettingsFragment.OnFragmentInteractionListener
 {
 
     private DrawerLayout mDrawerLayout;
     private int mNavItemId;
-    private Fragment michaelFragment;
-    private Fragment andrewFragment;
+    private Fragment mCreateImageFragment;
+    private Fragment mBrowseImageFragment;
+    private Fragment mSettingsFragment;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,12 +45,13 @@ public class MainActivity
         if(savedInstanceState == null)
         {
             try {
-                andrewFragment = (Fragment) AndrewFragment.class.newInstance();
-                michaelFragment = (Fragment) MichaelFragment.class.newInstance();
+                mBrowseImageFragment = (Fragment) BrowseImageFragment.class.newInstance();
+                mCreateImageFragment = (Fragment) CreateImageFragment.class.newInstance();
+                mSettingsFragment = (Fragment) SettingsFragment.class.newInstance();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, andrewFragment).commit();
+            getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mBrowseImageFragment).commit();
         }
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
@@ -65,11 +68,15 @@ public class MainActivity
         Fragment frag = null;
         Class frag_class = null;
         switch (menuItem.getItemId()) {
-            case R.id.andrew_button:
-                getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, andrewFragment).commit();
+            case R.id.browse_button:
+                getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mBrowseImageFragment).commit();
                 break;
-            case R.id.michael_button:
-                getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, michaelFragment).commit();                break;
+            case R.id.create_button:
+                getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mCreateImageFragment).commit();
+                break;
+            case R.id.settings_button:
+                getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mSettingsFragment).commit();
+                break;
             default:
                 break;
         }
@@ -91,7 +98,7 @@ public class MainActivity
 
     public void onButtonPress(View view)
     {
-        ((MichaelFragment)michaelFragment).onButtonPress(view);
+        ((CreateImageFragment) mCreateImageFragment).onButtonPress(view);
     }
 
     @Override
