@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 
 public class MainActivity
@@ -24,6 +26,7 @@ public class MainActivity
 {
 
     private DrawerLayout mDrawerLayout;
+    private NavigationView mNavigationView;
     private int mNavItemId;
     private Fragment mCreateImageFragment;
     private Fragment mBrowseImageFragment;
@@ -41,32 +44,71 @@ public class MainActivity
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
 
 
-        // Add the fragments to the layout
+
         if(savedInstanceState == null)
         {
-            try {
-                mBrowseImageFragment = (Fragment) BrowseImageFragment.class.newInstance();
-                mCreateImageFragment = (Fragment) CreateImageFragment.class.newInstance();
-                mSettingsFragment = (Fragment) SettingsFragment.class.newInstance();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mBrowseImageFragment).commit();
+            mNavItemId = R.id.browse_button;
+            // TODO get saved state stuff
         }
+        else
+        {
+            mNavItemId = savedInstanceState.getInt("mNavItemId");
+        }
+
+        // Add the fragments to the layout
+        Fragment frag = null;
+        try {
+            mBrowseImageFragment = (Fragment) BrowseImageFragment.class.newInstance();
+            mCreateImageFragment = (Fragment) CreateImageFragment.class.newInstance();
+            mSettingsFragment = (Fragment) SettingsFragment.class.newInstance();
+            switch(mNavItemId)
+            {
+                case R.id.browse_button:
+                default:
+                    frag = mBrowseImageFragment;
+                    break;
+                case R.id.create_button:
+                    frag = mCreateImageFragment;
+                    break;
+                case R.id.settings_button:
+                    frag = mSettingsFragment;
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, frag).commit();
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
 
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        navigationView.bringToFront();
-        navigationView.setNavigationItemSelectedListener(this);
+        mNavigationView = findViewById(R.id.nav_view);
+        mNavigationView.bringToFront();
+        mNavigationView.setNavigationItemSelectedListener(this);
+        setupAccountSwitching();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outstate)
+    {
+        super.onSaveInstanceState(outstate);
+        outstate.putInt("mNavItemId", mNavItemId);
+
+    }
+
+    public void setupAccountSwitching() {
+        ImageView imgView = mNavigationView.getHeaderView(0).findViewById(R.id.account_picture);
+        imgView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ((TextView)mNavigationView.getHeaderView(0).findViewById(R.id.account_text)).setText("PICTURE CLICKED");
+            }
+        });
     }
 
     @Override
     public boolean onNavigationItemSelected(final MenuItem menuItem) {
 // update highlighted item in the navigation menu
         menuItem.setChecked(true);
-        Fragment frag = null;
-        Class frag_class = null;
         switch (menuItem.getItemId()) {
             case R.id.browse_button:
                 getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mBrowseImageFragment).commit();
@@ -80,6 +122,7 @@ public class MainActivity
             default:
                 break;
         }
+        mNavItemId = menuItem.getItemId();
         mDrawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }

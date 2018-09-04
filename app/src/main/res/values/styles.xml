@@ -7,4 +7,8 @@
     <style name="ToolbarTheme" parent="MainTheme">
         <item name="android:background">@color/toolbar_color</item>
     </style>
+
+    <style name="NavHeaderTheme" parent="MainTheme">
+        <item name="android:background">@color/nav_header_color</item>
+    </style>
 </resources>

@@ -21,23 +21,12 @@ import com.android.volley.toolbox.Volley;
  * Activities that contain this fragment must implement the
  * {@link CreateImageFragment.OnFragmentInteractionListener} interface
  * to handle interaction events.
- * Use the {@link CreateImageFragment#newInstance} factory method to
- * create an instance of this fragment.
  */
 public class CreateImageFragment extends Fragment {
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
     private static final String WEATHER_REQUEST = "https://api.openweathermap.org/data/2.5/weather?units=imperial&id=5780993&APPID=7db747ea38c0f23cf84a1a138d5675cb";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
 
     private OnFragmentInteractionListener mListener;
     private TextView mTextView;
-    private View mThis;
     private RequestQueue mRequestQueue;
 // ...
 
@@ -47,12 +36,11 @@ public class CreateImageFragment extends Fragment {
     }
 
     public void onButtonPress(View view) {
-// Request a string response from the provided URL.
+        // Request a string response from the provided URL.
         StringRequest stringRequest = new StringRequest(Request.Method.GET, WEATHER_REQUEST,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        // Display the first 500 characters of the response string.
                         mTextView.setText(response);
                     }
                 }, new Response.ErrorListener() {
@@ -62,35 +50,19 @@ public class CreateImageFragment extends Fragment {
             }
         });
 
-// Add the request to the RequestQueue.
+        // Add the request to the RequestQueue.
         mRequestQueue.add(stringRequest);
-    }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment CreateImageFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static CreateImageFragment newInstance(String param1, String param2) {
-        CreateImageFragment fragment = new CreateImageFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -98,13 +70,12 @@ public class CreateImageFragment extends Fragment {
                              Bundle savedInstanceState) {
 
 
-        View myFragmentView = inflater.inflate(R.layout.fragment_create_image, container, false);
+        View mThis = inflater.inflate(R.layout.fragment_create_image, container, false);
 
-        mTextView = (TextView) myFragmentView.findViewById(R.id.weather_text);
-        mThis = myFragmentView;
+        mTextView = (TextView) mThis.findViewById(R.id.weather_text);
         // Instantiate the RequestQueue.
         mRequestQueue = Volley.newRequestQueue(this.getContext());
-        return myFragmentView;
+        return mThis;
     }
 
     @Override
