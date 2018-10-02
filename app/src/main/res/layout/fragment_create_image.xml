@@ -4,23 +4,53 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:theme="@style/MainTheme"
-    tools:context=".CreateImageFragment">
+    tools:context=".CreateImageFragment"
+    android:layout_marginTop="?android:attr/actionBarSize"
+    android:background="#b2b0b0">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:id="@+id/weather_text"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Michael Fragment" />
+    <com.toastbrush.toastbrush_android.DrawingView
+        android:id="@+id/drawing_view"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="60dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="10dp"
+        android:background="#ffecc0" />
 
-    <Button
-        android:id="@+id/button"
-        style="@android:style/Widget.Holo.Button.Small"
+    <LinearLayout
+        android:id="@+id/drawing_bar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="?android:attr/actionBarSize"
-        android:text="Get Weather JSON"
-        android:onClick="onButtonPress"/>
+        android:layout_height="100dp"
+        android:layout_gravity="center|bottom"
+        android:orientation="horizontal"
+        android:background="#FFFFFFFF">
+
+        <Button
+            android:id="@+id/draw_clear_button"
+            style="@android:style/Widget.Holo.Button.Small"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Clear">
+        </Button>
+        <Button
+            android:id="@+id/draw_save_button"
+            style="@android:style/Widget.Holo.Button.Small"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Save">
+        </Button>
+        <Button
+            android:id="@+id/draw_send_button"
+            style="@android:style/Widget.Holo.Button.Small"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Toast">
+        </Button>
+    </LinearLayout>
 
 </FrameLayout>

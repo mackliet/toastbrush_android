@@ -139,11 +139,6 @@ public class MainActivity
         return super.onOptionsItemSelected(item);
     }
 
-    public void onButtonPress(View view)
-    {
-        ((CreateImageFragment) mCreateImageFragment).onButtonPress(view);
-    }
-
     @Override
     public void onFragmentInteraction(Uri uri) {
 

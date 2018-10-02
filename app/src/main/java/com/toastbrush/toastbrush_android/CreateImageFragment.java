@@ -1,19 +1,29 @@
 package com.toastbrush.toastbrush_android;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.InputType;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+
+import java.io.File;
 
 
 /**
@@ -22,37 +32,16 @@ import com.android.volley.toolbox.Volley;
  * {@link CreateImageFragment.OnFragmentInteractionListener} interface
  * to handle interaction events.
  */
-public class CreateImageFragment extends Fragment {
-    private static final String WEATHER_REQUEST = "https://api.openweathermap.org/data/2.5/weather?units=imperial&id=5780993&APPID=7db747ea38c0f23cf84a1a138d5675cb";
-
+public class CreateImageFragment extends Fragment implements View.OnClickListener {
     private OnFragmentInteractionListener mListener;
-    private TextView mTextView;
-    private RequestQueue mRequestQueue;
+    private Button mClearButton;
+    private Button mSaveButton;
+    private Button mToastButton;
 // ...
-
+    private com.toastbrush.toastbrush_android.DrawingView mDrawingView;
 
     public CreateImageFragment() {
         // Required empty public constructor
-    }
-
-    public void onButtonPress(View view) {
-        // Request a string response from the provided URL.
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, WEATHER_REQUEST,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        mTextView.setText(response);
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                mTextView.setText("That didn't work!");
-            }
-        });
-
-        // Add the request to the RequestQueue.
-        mRequestQueue.add(stringRequest);
-
     }
 
     @Override
@@ -69,12 +58,15 @@ public class CreateImageFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-
+        // Instantiate things
         View mThis = inflater.inflate(R.layout.fragment_create_image, container, false);
-
-        mTextView = (TextView) mThis.findViewById(R.id.weather_text);
-        // Instantiate the RequestQueue.
-        mRequestQueue = Volley.newRequestQueue(this.getContext());
+        mDrawingView = (com.toastbrush.toastbrush_android.DrawingView)mThis.findViewById(R.id.drawing_view);
+        mClearButton = (Button) mThis.findViewById(R.id.draw_clear_button);
+        mSaveButton = (Button) mThis.findViewById(R.id.draw_save_button);
+        mToastButton = (Button) mThis.findViewById(R.id.draw_send_button);
+        mClearButton.setOnClickListener(this);
+        mSaveButton.setOnClickListener(this);
+        mToastButton.setOnClickListener(this);
         return mThis;
     }
 
@@ -93,6 +85,134 @@ public class CreateImageFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch(view.getId())
+        {
+            case R.id.draw_clear_button:
+                mDrawingView.clear_canvas();
+                break;
+            case R.id.draw_save_button:
+                AlertDialog.Builder saveDialog = new AlertDialog.Builder(this.getContext());
+                saveDialog.setTitle("Save Toast Image");
+                saveDialog.setMessage("Save image to for future toasting?");
+                saveDialog.setPositiveButton("Local Save", new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which){
+                        create_save_dialog(SaveType.LOCAL);
+                    }
+                });
+                saveDialog.setNegativeButton("Database Save", new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which){
+                        create_save_dialog(SaveType.DATABASE);
+                    }
+                });
+
+                saveDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which){
+                        dialog.cancel();
+                    }
+                });
+                saveDialog.show();
+            default:
+                break;
+        }
+    }
+
+    enum SaveType
+    {
+        LOCAL,
+        DATABASE
+    }
+
+    private void create_save_dialog(final SaveType save_type)
+    {
+        String title = "";
+        switch(save_type)
+        {
+            case LOCAL:
+                title = "Local Save";
+                break;
+            case DATABASE:
+                title = "Database Save";
+                break;
+            default:
+                break;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this.getContext());
+        builder.setTitle(title);
+        builder.setMessage("Input name for toast image");
+
+        // Set up the input textbox
+        final EditText input = new EditText(this.getContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);
+
+        // Set up the buttons
+        builder.setPositiveButton("OK", null);
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        final AlertDialog dialog = builder.create();
+        dialog.show();
+        //Overriding the handler immediately after show is probably a better approach than OnShowListener as described below
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                String filename = input.getText().toString();
+
+                if(filename.equals(""))
+                {
+                    Toast.makeText(getContext(),"Input an image name",Toast.LENGTH_SHORT).show();
+                }
+                else if(file_already_exists(filename, save_type))
+                {
+                    Toast.makeText(getContext(),"Use different name",Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    switch(save_type)
+                    {
+                        case LOCAL:
+                            mDrawingView.save_canvas_local(filename);
+                            break;
+                        case DATABASE:
+                            mDrawingView.save_canvas_database(filename);
+                            break;
+                    }
+                    dialog.dismiss();
+                    Toast.makeText(getContext(),"Successfully saved file",Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private boolean file_already_exists(String filename, SaveType save_type)
+    {
+        switch(save_type)
+        {
+            case LOCAL:
+                File directory = new File(getContext().getFilesDir(), "Toast_images");
+                directory.mkdirs();
+                File[] files = directory.listFiles();
+                for (File file : files)
+                {
+                    if((filename+".tst").equals(file.getName()))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            case DATABASE:
+                return false;
+        }
+        return false;
     }
 
     /**
