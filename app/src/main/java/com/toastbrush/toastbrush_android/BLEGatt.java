@@ -97,6 +97,7 @@ public class BLEGatt extends BluetoothGattCallback {
     public void connectGATT()
     {
         if(mDevice != null && mConnectionState == STATE_DISCONNECTED) {
+            mConnectionState = STATE_CONNECTING;
             mBluetoothGatt = mDevice.connectGatt(mContext, true, mGattCallback);
         }
     }
@@ -115,11 +116,12 @@ public class BLEGatt extends BluetoothGattCallback {
                     String intentAction;
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         intentAction = ACTION_GATT_CONNECTED;
-                        mConnectionState = STATE_CONNECTED;
+
                         //broadcastUpdate(intentAction);
                         Log.i(TAG, "Connected to GATT server.");
                         try {
                             Thread.sleep(600);
+                            mConnectionState = STATE_CONNECTED;
                         }catch(Exception e){}
                         Log.i(TAG, "Attempting to start service discovery:" +
                                 mBluetoothGatt.discoverServices());
@@ -173,7 +175,7 @@ public class BLEGatt extends BluetoothGattCallback {
 
     public void sendData(String s)
     {
-        if(mConnectionState == STATE_CONNECTED) {
+        if(mConnectionState == STATE_CONNECTED && writeInProgress == false && rx != null) {
             byte[] data = s.getBytes(Charset.forName("UTF-8"));
             rx.setValue(data);
             writeInProgress = true; // Set the write in progress flag

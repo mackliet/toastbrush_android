@@ -109,6 +109,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                     }
                 });
                 saveDialog.show();
+                break;
             case R.id.draw_send_button:
                 mBluetooth.connectGATT();
                 if(LED_ON)
@@ -117,7 +118,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 }
                 else
                 {
-                    mBluetooth.sendData("B");
+                   mBluetooth.sendData("B");
                 }
                 LED_ON = !LED_ON;
                 break;
