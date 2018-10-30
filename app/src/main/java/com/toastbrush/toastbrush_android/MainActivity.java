@@ -31,6 +31,8 @@ public class MainActivity
     private Fragment mCreateImageFragment;
     private Fragment mBrowseImageFragment;
     private Fragment mSettingsFragment;
+    private ToastbrushWebAPI mAPImanager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,9 +60,10 @@ public class MainActivity
         // Add the fragments to the layout
         Fragment frag = null;
         try {
-            mBrowseImageFragment = (Fragment) BrowseImageFragment.class.newInstance();
-            mCreateImageFragment = (Fragment) CreateImageFragment.class.newInstance();
-            mSettingsFragment = (Fragment) SettingsFragment.class.newInstance();
+            mBrowseImageFragment = BrowseImageFragment.class.newInstance();
+            mCreateImageFragment = CreateImageFragment.class.newInstance();
+            mSettingsFragment = SettingsFragment.class.newInstance();
+
             switch(mNavItemId)
             {
                 case R.id.browse_button:
@@ -92,7 +95,6 @@ public class MainActivity
     {
         super.onSaveInstanceState(outstate);
         outstate.putInt("mNavItemId", mNavItemId);
-
     }
 
     public void setupAccountSwitching() {

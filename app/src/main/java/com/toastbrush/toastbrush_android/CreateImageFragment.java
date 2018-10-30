@@ -7,21 +7,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.text.InputType;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
-
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 
 import java.io.File;
 
@@ -37,8 +28,10 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
     private Button mClearButton;
     private Button mSaveButton;
     private Button mToastButton;
+    private BLEGatt mBluetooth;
 // ...
     private com.toastbrush.toastbrush_android.DrawingView mDrawingView;
+    private boolean LED_ON = true;
 
     public CreateImageFragment() {
         // Required empty public constructor
@@ -60,6 +53,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
 
         // Instantiate things
         View mThis = inflater.inflate(R.layout.fragment_create_image, container, false);
+        mBluetooth = new BLEGatt(getContext());
         mDrawingView = (com.toastbrush.toastbrush_android.DrawingView)mThis.findViewById(R.id.drawing_view);
         mClearButton = (Button) mThis.findViewById(R.id.draw_clear_button);
         mSaveButton = (Button) mThis.findViewById(R.id.draw_save_button);
@@ -115,6 +109,18 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                     }
                 });
                 saveDialog.show();
+            case R.id.draw_send_button:
+                mBluetooth.connectGATT();
+                if(LED_ON)
+                {
+                    mBluetooth.sendData("A");
+                }
+                else
+                {
+                    mBluetooth.sendData("B");
+                }
+                LED_ON = !LED_ON;
+                break;
             default:
                 break;
         }

@@ -3,11 +3,14 @@ package com.toastbrush.toastbrush_android;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.text.InputType;
 import android.util.AttributeSet;
+import android.util.Base64;
+import android.util.Base64OutputStream;
 import android.util.Log;
 import android.view.View;
 import android.graphics.Bitmap;
@@ -18,11 +21,19 @@ import android.view.MotionEvent;
 import android.support.v4.util.Pair;
 import android.widget.EditText;
 
+import com.android.volley.Response;
+
+import org.json.JSONObject;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -34,6 +45,7 @@ public class DrawingView extends View {
     private Paint drawPaint, canvasPaint;
     //initial color
     private int paintColor = Color.parseColor("#f5ca62");
+    private int backgroundColor = Color.parseColor("#ffecc0");
     //canvas
     private Canvas drawCanvas;
     //canvas bitmap
@@ -68,6 +80,7 @@ public class DrawingView extends View {
         mHeight = h;
         super.onSizeChanged(w, h, oldw, oldh);
         canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        canvasBitmap.eraseColor(backgroundColor);
         drawCanvas = new Canvas(canvasBitmap);
 
     }
@@ -109,32 +122,14 @@ public class DrawingView extends View {
         //numberOfPoints = 0;
         mDrawingPoints = new ArrayList<>();
         canvasBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
+        canvasBitmap.eraseColor(backgroundColor);
         drawCanvas = new Canvas(canvasBitmap);
         invalidate();
     }
 
     public void save_canvas_local(String filename)
     {
-        File bitmap_file = new File(getContext().getFilesDir(), "Toast_images/" + filename +".png");
-        File points_file = new File(getContext().getFilesDir(), "Toast_images/" + filename +".tstpnts");
-        try {
-            FileOutputStream bitmap_stream = new FileOutputStream(bitmap_file);
-            FileOutputStream points_stream = new FileOutputStream(points_file);
 
-            //Write points and png to files
-            points_stream.write(mDrawingPoints.toString().getBytes("UTF-8"));
-            canvasBitmap.compress(Bitmap.CompressFormat.PNG, 100, bitmap_stream);
-
-            // Zip points and png into a file
-            String[] files_to_zip = {bitmap_file.getAbsolutePath(), points_file.getAbsolutePath()};
-            String zip_file_name = (new File(getContext().getFilesDir(), "Toast_images/" + filename + ".tst")).getAbsolutePath();
-            zip(files_to_zip, zip_file_name);
-
-            bitmap_stream.close();
-            points_stream.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public void save_canvas_database(String filename)
@@ -142,38 +137,17 @@ public class DrawingView extends View {
 
     }
 
-    /*
-    Got this from https://stacktips.com/tutorials/android/how-to-programmatically-zip-and-unzip-file-in-android
-     */
-    public void zip(String[] _files, String zipFileName) {
-        final int BUFFER = 10000;
-        try {
-            BufferedInputStream origin = null;
-            FileOutputStream dest = new FileOutputStream(zipFileName);
-            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
-                    dest));
-            byte data[] = new byte[BUFFER];
-
-            for (int i = 0; i < _files.length; i++) {
-                Log.v("Compress", "Adding: " + _files[i]);
-                FileInputStream fi = new FileInputStream(_files[i]);
-                origin = new BufferedInputStream(fi, BUFFER);
-
-                ZipEntry entry = new ZipEntry(_files[i].substring(_files[i].lastIndexOf("/") + 1));
-                out.putNextEntry(entry);
-                int count;
-
-                while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                    out.write(data, 0, count);
-                }
-                origin.close();
-            }
-
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    String base64EncodeBitmap(Bitmap bmp)
+    {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        return Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
     }
 
+    Bitmap base64decodeBitmap(String base64str)
+    {
+        byte[] decodedString = Base64.decode(base64str, Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+    }
 }
 
