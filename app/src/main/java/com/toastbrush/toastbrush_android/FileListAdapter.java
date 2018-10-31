@@ -26,10 +26,7 @@ import android.widget.TextView;
  */
 public class FileListAdapter extends ArrayAdapter<FileListItem> {
 
-    private static final String tag = "com.toastbrush.toastbrush_android.FileListAdapter";
-    private static final String ASSETS_DIR = "Toast_images/";
     private Context context;
-
     private ImageView toastImageIcon;
     private TextView toastImageName;
     private TextView toastImageTimestamp;
@@ -77,16 +74,7 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
         //Set timestamp
         toastImageTimestamp.setText((new DateFormat()).format("MM/dd/yyyy", toastImage.mTimestamp).toString());
 
-        // Set icon using File path
-        String imgFilePath = (new File(getContext().getFilesDir(), ASSETS_DIR + toastImage.mFilename + ".png")).getAbsolutePath();
-        try {
-            Log.d("TESTING", "OPENING " + imgFilePath);
-            toastImage.mIcon = BitmapFactory.decodeStream(new FileInputStream(new File(imgFilePath)));
-            toastImageIcon.setImageBitmap(Bitmap.createScaledBitmap(toastImage.mIcon, 200, 200, false));
-        } catch (IOException e) {
-            Log.d("TESTING", "EXCEPTION THROWN WHEN OPENING FILE: " + e);
-            e.printStackTrace();
-        }
+        toastImageIcon.setImageBitmap(Bitmap.createScaledBitmap(toastImage.mIcon, 200, 200, false));
 
         return row;
     }

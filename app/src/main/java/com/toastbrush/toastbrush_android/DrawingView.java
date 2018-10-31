@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.text.InputType;
@@ -129,25 +130,12 @@ public class DrawingView extends View {
 
     public void save_canvas_local(String filename)
     {
-
+        DatabaseHelper.saveToastImage(filename, DatabaseHelper.packageImageInfo(canvasBitmap, mDrawingPoints));
     }
 
     public void save_canvas_database(String filename)
     {
-
-    }
-
-    String base64EncodeBitmap(Bitmap bmp)
-    {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-        return Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
-    }
-
-    Bitmap base64decodeBitmap(String base64str)
-    {
-        byte[] decodedString = Base64.decode(base64str, Base64.DEFAULT);
-        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+        String data = DatabaseHelper.packageImageInfo(canvasBitmap, mDrawingPoints);
     }
 }
 

@@ -178,10 +178,6 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 {
                     Toast.makeText(getContext(),"Input an image name",Toast.LENGTH_SHORT).show();
                 }
-                else if(file_already_exists(filename, save_type))
-                {
-                    Toast.makeText(getContext(),"Use different name",Toast.LENGTH_SHORT).show();
-                }
                 else
                 {
                     switch(save_type)
@@ -198,28 +194,6 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 }
             }
         });
-    }
-
-    private boolean file_already_exists(String filename, SaveType save_type)
-    {
-        switch(save_type)
-        {
-            case LOCAL:
-                File directory = new File(getContext().getFilesDir(), "Toast_images");
-                directory.mkdirs();
-                File[] files = directory.listFiles();
-                for (File file : files)
-                {
-                    if((filename+".tst").equals(file.getName()))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            case DATABASE:
-                return false;
-        }
-        return false;
     }
 
     /**
