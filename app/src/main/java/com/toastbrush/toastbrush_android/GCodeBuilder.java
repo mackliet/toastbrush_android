@@ -35,7 +35,13 @@ public class GCodeBuilder
         {
 
         }
+        ret_val.append(endProgram());
         return ret_val.toString();
+    }
+
+    public static String endProgram()
+    {
+        return "M30\n";
     }
 
     private static int convertY(double y)
