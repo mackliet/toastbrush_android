@@ -102,11 +102,6 @@ public class BLEGatt extends BluetoothGattCallback {
         }
     }
 
-    public int getmConnectionState()
-    {
-        return mConnectionState;
-    }
-
     // Various callback methods defined by the BLE API.
     private final BluetoothGattCallback mGattCallback =
             new BluetoothGattCallback() {

@@ -1,16 +1,23 @@
 package com.toastbrush.toastbrush_android;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
 
 
@@ -20,10 +27,11 @@ import java.util.ArrayList;
  * {@link BrowseImageFragment.OnFragmentInteractionListener} interface
  * to handle interaction events.
  */
-public class BrowseImageFragment extends Fragment {
+public class BrowseImageFragment extends Fragment implements AdapterView.OnItemClickListener {
     private OnFragmentInteractionListener mListener;
-    private ViewPager mViewPager;
-    private BrowsePagerAdapter mPagerAdapter;
+    private ListView mListView;
+    private ArrayList<FileListItem> mToastImageList;
+    private FileListAdapter mListAdapter;
 
     public BrowseImageFragment() {
         // Required empty public constructor
@@ -40,18 +48,11 @@ public class BrowseImageFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View this_view = inflater.inflate(R.layout.fragment_browse_image, container, false);
-        ArrayList<FileListItem> toastImageList = new ArrayList<>();
-
-        for(String image_name : DatabaseHelper.getFilenames())
-        {
-            FileListItem item = new FileListItem(image_name);
-            item.mTimestamp = DatabaseHelper.getTimestamp(image_name);
-            item.mIcon = DatabaseHelper.getIcon(image_name);
-            toastImageList.add(item);
-        }
-        FileListAdapter listAdapter = new FileListAdapter(getContext(), R.layout.file_list_item, toastImageList);
-        ListView list_view = this_view.findViewById(R.id.file_list);
-        list_view.setAdapter(listAdapter);
+        mToastImageList = DatabaseHelper.getFileListItems();
+        mListAdapter = new FileListAdapter(getContext(), R.layout.file_list_item, mToastImageList);
+        mListView = this_view.findViewById(R.id.file_list);
+        mListView.setOnItemClickListener(this);
+        mListView.setAdapter(mListAdapter);
         return this_view;
     }
 
@@ -70,6 +71,50 @@ public class BrowseImageFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long id)
+    {
+        image_option_menu(position);
+    }
+
+    private void image_option_menu(final int position)
+    {
+        AlertDialog.Builder saveDialog = new AlertDialog.Builder(this.getContext());
+        saveDialog.setTitle("Image Options");
+        saveDialog.setMessage("What would you like to do with the image?");
+        saveDialog.setPositiveButton("Delete", new DialogInterface.OnClickListener(){
+            public void onClick(DialogInterface dialog, int which)
+            {
+                deleteImage(position);
+            }
+        });
+        saveDialog.setNegativeButton("Open", new DialogInterface.OnClickListener()
+        {
+            public void onClick(DialogInterface dialog, int which)
+            {
+                String image_name = mToastImageList.get(position).mFilename;
+                String pkged_info = DatabaseHelper.getImageData(image_name);
+                ((MainActivity)getActivity()).openImageInCreateImageFragment(pkged_info);
+            }
+        });
+
+        saveDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
+            public void onClick(DialogInterface dialog, int which){
+                dialog.cancel();
+            }
+        });
+        saveDialog.show();
+    }
+
+    public void deleteImage(int position)
+    {
+        FileListItem image = mToastImageList.get(position);
+        mToastImageList.remove(position);
+        mListAdapter.notifyDataSetChanged();
+        DatabaseHelper.deleteToastImage(image.mFilename);
+        Toast.makeText(getContext(),"Deleted " + image.mFilename,Toast.LENGTH_SHORT).show();
     }
 
     /**

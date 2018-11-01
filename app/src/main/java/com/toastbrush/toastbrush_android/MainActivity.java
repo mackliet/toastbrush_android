@@ -21,6 +21,7 @@ public class MainActivity
         implements
         NavigationView.OnNavigationItemSelectedListener,
         BrowseImageFragment.OnFragmentInteractionListener,
+        OnlineBrowseFragment.OnFragmentInteractionListener,
         CreateImageFragment.OnFragmentInteractionListener,
         SettingsFragment.OnFragmentInteractionListener
 {
@@ -30,9 +31,24 @@ public class MainActivity
     private int mNavItemId;
     private Fragment mCreateImageFragment;
     private Fragment mBrowseImageFragment;
+    private Fragment mOnlineBrowseFragment;
     private Fragment mSettingsFragment;
     private ToastbrushWebAPI mAPImanager;
 
+    public void openImageInCreateImageFragment(String pkgedToastInfo)
+    {
+        Bundle args = new Bundle();
+        args.putString("Image_data", pkgedToastInfo);
+        mCreateImageFragment.setArguments(args);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.content_frame, mCreateImageFragment)
+                .addToBackStack(null)
+                .commit();
+        mNavItemId = R.id.create_button;
+        ((NavigationView)findViewById(R.id.nav_view)).getMenu().findItem(mNavItemId).setChecked(true);
+
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,18 +65,18 @@ public class MainActivity
 
         if(savedInstanceState == null)
         {
-            mNavItemId = R.id.browse_button;
-            // TODO get saved state stuff
+            mNavItemId = R.id.create_button;
         }
         else
         {
             mNavItemId = savedInstanceState.getInt("mNavItemId");
         }
-
+        ((NavigationView)findViewById(R.id.nav_view)).getMenu().findItem(mNavItemId).setChecked(true);
         // Add the fragments to the layout
         Fragment frag = null;
         try {
             mBrowseImageFragment = BrowseImageFragment.class.newInstance();
+            mOnlineBrowseFragment = OnlineBrowseFragment.class.newInstance();
             mCreateImageFragment = CreateImageFragment.class.newInstance();
             mSettingsFragment = SettingsFragment.class.newInstance();
 
@@ -69,6 +85,9 @@ public class MainActivity
                 case R.id.browse_button:
                 default:
                     frag = mBrowseImageFragment;
+                    break;
+                case R.id.browse_online_button:
+                    frag = mOnlineBrowseFragment;
                     break;
                 case R.id.create_button:
                     frag = mCreateImageFragment;
@@ -114,6 +133,9 @@ public class MainActivity
         switch (menuItem.getItemId()) {
             case R.id.browse_button:
                 getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mBrowseImageFragment).commit();
+                break;
+            case R.id.browse_online_button:
+                getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mOnlineBrowseFragment).commit();
                 break;
             case R.id.create_button:
                 getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mCreateImageFragment).commit();

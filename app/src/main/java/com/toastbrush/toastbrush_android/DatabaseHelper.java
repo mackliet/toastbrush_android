@@ -7,9 +7,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.support.v4.util.Pair;
 import android.util.Base64;
+import android.util.Log;
 
 import com.toastbrush.ToastbrushApplication;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -18,21 +20,38 @@ import java.util.ArrayList;
 public class DatabaseHelper
 {
     private static String DATABASE_FILE_PATH;
-    public static void saveToastImage(String filename, String pkgedTstImg)
+    public static void saveToastImage(String filename, Bitmap bmp, JSONArray tstPnts)
     {
         if(DATABASE_FILE_PATH == null)
         {
             DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
         }
         SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS Toast_images (image_name TEXT PRIMARY KEY, data TEXT, timestamp INTEGER)");;
+        create_if_not_exists(db);
         SQLiteStatement stmt = db.compileStatement("DELETE FROM Toast_images WHERE image_name=?");
         stmt.bindString(1, filename);
         stmt.execute();
-        stmt = db.compileStatement("INSERT INTO Toast_images (image_name, data, timestamp) VALUES (?, ?, ?)");
+        stmt = db.compileStatement("INSERT INTO Toast_images (image_name, data, timestamp, icon) VALUES (?, ?, ?, ?)");
         stmt.bindString(1, filename);
-        stmt.bindString(2, pkgedTstImg);
+        stmt.bindString(2, packageImageInfo(bmp, tstPnts));
         stmt.bindLong(3, System.currentTimeMillis());
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, bytes);
+        stmt.bindBlob(4, bytes.toByteArray());
+        stmt.execute();
+    }
+
+    public static void deleteToastImage(String filename)
+    {
+        if(DATABASE_FILE_PATH == null)
+        {
+            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
+        }
+        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        create_if_not_exists(db);
+        SQLiteStatement stmt = db.compileStatement("DELETE FROM Toast_images WHERE image_name=?");
+        stmt.bindString(1, filename);
+        stmt.execute();
         stmt.execute();
     }
 
@@ -44,12 +63,39 @@ public class DatabaseHelper
             DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
         }
         SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS Toast_images (image_name TEXT PRIMARY KEY, data TEXT, timestamp INTEGER)");;
+        create_if_not_exists(db);
         Cursor cursor = db.rawQuery("SELECT image_name FROM Toast_images", new String[]{});
         while(cursor.moveToNext())
         {
             int index = cursor.getColumnIndex("image_name");
             filenames.add(cursor.getString(index));
+        }
+        return filenames;
+    }
+
+    public static ArrayList<FileListItem> getFileListItems()
+    {
+        ArrayList<FileListItem> filenames = new ArrayList<>();
+        if(DATABASE_FILE_PATH == null)
+        {
+            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
+        }
+        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        create_if_not_exists(db);
+        ;
+        Cursor cursor = db.rawQuery("SELECT image_name, icon, timestamp FROM Toast_images", new String[]{});
+        try {
+            while (cursor.moveToNext()) {
+                FileListItem listItem = new FileListItem(cursor.getString(cursor.getColumnIndex("image_name")));
+                byte[] byteBitmap = cursor.getBlob(cursor.getColumnIndex("icon"));
+                listItem.mIcon = BitmapFactory.decodeByteArray(byteBitmap, 0, byteBitmap.length);
+                listItem.mTimestamp = cursor.getLong(cursor.getColumnIndex("timestamp"));
+                filenames.add(listItem);
+            }
+        }
+        catch(Exception e)
+        {
+
         }
         return filenames;
     }
@@ -61,20 +107,23 @@ public class DatabaseHelper
             DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
         }
         SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS Toast_images (image_name TEXT PRIMARY KEY, data TEXT, timestamp INTEGER)");;
+        create_if_not_exists(db);
+        Cursor cursor = db.rawQuery("SELECT icon FROM Toast_images WHERE image_name=?", new String[]{filename});
+        byte[] byteBitmap = cursor.getBlob(cursor.getColumnIndex("icon"));
+        return BitmapFactory.decodeByteArray(byteBitmap, 0, byteBitmap.length);
+    }
+
+    public static String getImageData(String filename)
+    {
+        if(DATABASE_FILE_PATH == null)
+        {
+            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
+        }
+        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        create_if_not_exists(db);
         SQLiteStatement stmt = db.compileStatement("SELECT data FROM Toast_images WHERE image_name=?");
         stmt.bindString(1, filename);
-        String encoded_bitmap = null;
-        try{
-            JSONObject json = new JSONObject(stmt.simpleQueryForString());
-            encoded_bitmap = json.getString("Image");
-        }
-        catch(Exception e)
-        {
-
-        }
-
-        return base64DecodeBitmap(encoded_bitmap);
+        return stmt.simpleQueryForString();
     }
 
     public static long getTimestamp(String filename)
@@ -84,20 +133,26 @@ public class DatabaseHelper
             DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
         }
         SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS Toast_images (image_name TEXT PRIMARY KEY, data TEXT, timestamp INTEGER)");;
+        create_if_not_exists(db);
         SQLiteStatement stmt = db.compileStatement("SELECT timestamp FROM Toast_images WHERE image_name=?");
         stmt.bindString(1, filename);
         return stmt.simpleQueryForLong();
     }
 
-    public static String packageImageInfo(Bitmap bmp, ArrayList<ArrayList<Pair<Float, Float>>> tstPnts)
+    private static void create_if_not_exists(SQLiteDatabase db)
+    {
+        db.execSQL("CREATE TABLE IF NOT EXISTS Toast_images (image_name TEXT PRIMARY KEY, data TEXT, timestamp INTEGER, icon BLOB)");
+    }
+
+    public static String packageImageInfo(Bitmap bmp, JSONArray tstPnts)
     {
         String ret_val = null;
+
         try
         {
             JSONObject json = new JSONObject();
             json.put("Image", base64EncodeBitmap(bmp));
-            json.put("Points", tstPnts.toString());
+            json.put("Points", tstPnts);
             ret_val = json.toString();
         }
         catch(Exception e)
@@ -117,7 +172,9 @@ public class DatabaseHelper
     public static Bitmap base64DecodeBitmap(String base64str)
     {
         byte[] decodedString = Base64.decode(base64str, Base64.DEFAULT);
-        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inMutable = true;
+        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length, options);
     }
 
     private DatabaseHelper(){}

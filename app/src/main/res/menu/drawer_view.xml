@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group android:checkableBehavior="single">
-        <item android:id="@+id/browse_button"
-            android:icon="@drawable/browse_image_icon"
-            android:title="Browse Toast Images" />
         <item android:id="@+id/create_button"
             android:icon="@drawable/create_image_icon"
             android:title="Create Toast Image" />
+        <item android:id="@+id/browse_button"
+            android:icon="@drawable/browse_image_icon"
+            android:title="Browse Toast Images" />
+        <item android:id="@+id/browse_online_button"
+            android:icon="@drawable/online_image_icon"
+            android:title="Shared Toast Images" />
         <item android:id="@+id/settings_button"
             android:icon="@drawable/settings_icon"
             android:title="Settings" />
