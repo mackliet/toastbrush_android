@@ -68,7 +68,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
             mDrawingView.setImage(image_data);
             bundle.remove("Image_data");
         }
-        ToastbrushApplication.getBluetoothServer().connectGATT();
+        ToastbrushApplication.getBluetoothServer();
         return mThis;
     }
 
@@ -119,6 +119,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 saveDialog.show();
                 break;
             case R.id.draw_send_button:
+                ToastbrushApplication.getBluetoothServer().connectGATT();
                 String gCode = GCodeBuilder.convertToGcode(mDrawingView.getToastPoints());
                 ToastbrushApplication.getBluetoothServer().sendData(gCode);
                 Log.d("TESTING", "Sending G Code:\n" + gCode);

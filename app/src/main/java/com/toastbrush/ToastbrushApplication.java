@@ -17,7 +17,7 @@ public class ToastbrushApplication extends Application
         super.onCreate();
         ToastbrushApplication.context = getApplicationContext();
         mRequestQueue = Volley.newRequestQueue(ToastbrushApplication.getAppContext());
-        mBluetoothServer = new BLEGatt(getAppContext());
+        mBluetoothServer = null;
     }
 
     public static Context getAppContext() {
@@ -39,7 +39,7 @@ public class ToastbrushApplication extends Application
         if (mBluetoothServer == null) {
             // getApplicationContext() is key, it keeps you from leaking the
             // Activity or BroadcastReceiver if someone passes one in.
-            mBluetoothServer = new BLEGatt(getAppContext());
+            mBluetoothServer = new BLEGatt(context);
         }
         return mBluetoothServer;
     }
