@@ -1,11 +1,15 @@
 package com.toastbrush.toastbrush_android;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -120,7 +124,15 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 break;
             case R.id.draw_send_button:
                 ToastbrushApplication.getBluetoothServer().connectGATT();
-                if(!ToastbrushApplication.getBluetoothServer().isConnected())
+                int permissionCheck = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+                if (permissionCheck != PackageManager.PERMISSION_GRANTED){
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)){
+                        Toast.makeText(getContext(), "The permission to get BLE location data is required", Toast.LENGTH_SHORT).show();
+                    }else{
+                        requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+                    }
+                }
+                else if(!ToastbrushApplication.getBluetoothServer().isConnected())
                 {
                     Toast.makeText(getContext(),"Not connected to toaster",Toast.LENGTH_SHORT).show();
                 }
@@ -133,7 +145,6 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                     String gCode = GCodeBuilder.convertToGcode(mDrawingView.getToastPoints());
                     ToastbrushApplication.getBluetoothServer().sendData(gCode);
                     Toast.makeText(getContext(),"Image sent to toaster",Toast.LENGTH_SHORT).show();
-                    Log.d("TESTING", "Sending G Code:\n" + gCode);
                 }
 
                 break;
