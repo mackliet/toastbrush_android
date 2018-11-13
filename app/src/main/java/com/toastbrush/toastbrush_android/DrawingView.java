@@ -23,8 +23,10 @@ import android.graphics.Path;
 import android.view.MotionEvent;
 import android.support.v4.util.Pair;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.android.volley.Response;
+import com.toastbrush.ToastbrushApplication;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -159,6 +161,22 @@ public class DrawingView extends View {
     public void save_canvas_database(String filename)
     {
         String data = DatabaseHelper.packageImageInfo(canvasBitmap, mDrawingPoints);
+        ToastbrushWebAPI.sendImage(filename, "mmackliet", "description", filename, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                try {
+                    JSONObject json = new JSONObject(response);
+                    if(json.getBoolean("Success"))
+                    {
+                        Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully saved to database", Toast.LENGTH_SHORT);
+                    };
+                }
+                catch(Exception e)
+                {
+                    Toast.makeText(ToastbrushApplication.getAppContext(), "Error saving to database", Toast.LENGTH_SHORT);
+                }
+            }
+        });
     }
 
     public void setImage(String image_data)

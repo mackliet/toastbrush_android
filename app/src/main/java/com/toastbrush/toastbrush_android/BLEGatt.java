@@ -12,12 +12,20 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import static com.android.volley.VolleyLog.TAG;
+import static java.lang.Integer.parseInt;
 
 public class BLEGatt extends BluetoothGattCallback {
 
@@ -30,6 +38,8 @@ public class BLEGatt extends BluetoothGattCallback {
     private BluetoothGattCharacteristic tx;
     private BluetoothGattCharacteristic rx;
     private String data;
+    private int mPacketCounter;
+    private Queue<String> mSendQueue;
 
     private int mConnectionState = STATE_DISCONNECTED;
     private static final int PERMISSIONS_GRANTED = 10;
@@ -92,6 +102,8 @@ public class BLEGatt extends BluetoothGattCallback {
         mScanning = true;
         mBluetoothAdapter.startLeScan(mLeScanCallback);
         mContext = context;
+        mSendQueue = new LinkedBlockingDeque<>();
+        mPacketCounter = -1;
     }
 
     public void connectGATT()
@@ -150,6 +162,18 @@ public class BLEGatt extends BluetoothGattCallback {
                 public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
                     Log.i(TAG, characteristic.getStringValue(0) + "  " + characteristic.toString());
                     data = characteristic.getStringValue(0);
+                    try {
+                        int requestedPacket = parseInt(data);
+                        if (requestedPacket > mPacketCounter) {
+                            mPacketCounter++;
+                            sendChunk();
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        Log.e("TESTING", "Failed to parse packet");
+                    }
+
                 }
 
                 @Override
@@ -162,6 +186,8 @@ public class BLEGatt extends BluetoothGattCallback {
                     writeInProgress = false;
                 }
             };
+    public boolean isConnected() { return mConnectionState == STATE_CONNECTED;}
+    public boolean readyToSend() { return mSendQueue.isEmpty() && isConnected();};
 
     public String getData()
     {
@@ -170,13 +196,37 @@ public class BLEGatt extends BluetoothGattCallback {
 
     public void sendData(String s)
     {
+        boolean send_when_done = mSendQueue.isEmpty(); // If queue was empty, send when done
+        ArrayList<String> instructions = new ArrayList<String>(Arrays.asList(s.split("\n")));
+        for(String instruction : instructions)
+        {
+            mSendQueue.add(instruction + "\n");
+        }
+    }
+
+    private void sendChunk()
+    {
+        final int CHUNK_SIZE = 10;
+        String data_to_send = "";
+        for(int i = 0; i < CHUNK_SIZE && !mSendQueue.isEmpty(); i++)
+        {
+            data_to_send += mSendQueue.poll();
+        }
+        if(data_to_send.contains("M30"))
+        {
+            mPacketCounter = -1;
+        }
+        send(data_to_send);
+    }
+
+    private void send(String s)
+    {
         if(mConnectionState == STATE_CONNECTED && writeInProgress == false && rx != null) {
             byte[] data = s.getBytes(Charset.forName("UTF-8"));
             rx.setValue(data);
             writeInProgress = true; // Set the write in progress flag
             mBluetoothGatt.writeCharacteristic(rx);
         }
-        //while (writeInProgress); // Wait for the flag to clear in onCharacteristicWrite
     }
 
     // Device scan callback.

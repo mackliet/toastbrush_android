@@ -280,13 +280,12 @@ public class ToastbrushWebAPI
 
         }
     }
-    public static void sendImage(String name, String file, String user, String description, String encoded, Response.Listener<String> callback)
+    public static void sendImage(String name, String user, String description, String encoded, Response.Listener<String> callback)
     {
         JSONObject request = new JSONObject();
         try
         {
             request.put("Name", name);
-            request.put("File", file);
             request.put("User", user);
             request.put("Description", description);
             request.put("Encoded", encoded);

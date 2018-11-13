@@ -39,7 +39,7 @@ public class OnlineBrowseFragment extends Fragment {
 
         // Inflate the layout for this fragment
         View this_view = inflater.inflate(R.layout.fragment_browse_online, container, false);
-        ArrayList<FileListItem> toastImageList = DatabaseHelper.getFileListItems();
+        ArrayList<FileListItem> toastImageList = new ArrayList<>();
         FileListAdapter listAdapter = new FileListAdapter(getContext(), R.layout.file_list_item, toastImageList);
         ListView list_view = this_view.findViewById(R.id.online_file_list);
         list_view.setAdapter(listAdapter);

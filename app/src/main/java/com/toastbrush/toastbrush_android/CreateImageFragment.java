@@ -120,9 +120,22 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 break;
             case R.id.draw_send_button:
                 ToastbrushApplication.getBluetoothServer().connectGATT();
-                String gCode = GCodeBuilder.convertToGcode(mDrawingView.getToastPoints());
-                ToastbrushApplication.getBluetoothServer().sendData(gCode);
-                Log.d("TESTING", "Sending G Code:\n" + gCode);
+                if(!ToastbrushApplication.getBluetoothServer().isConnected())
+                {
+                    Toast.makeText(getContext(),"Not connected to toaster",Toast.LENGTH_SHORT).show();
+                }
+                else if(!ToastbrushApplication.getBluetoothServer().readyToSend())
+                {
+                    Toast.makeText(getContext(),"Toaster not ready to receive image",Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    String gCode = GCodeBuilder.convertToGcode(mDrawingView.getToastPoints());
+                    ToastbrushApplication.getBluetoothServer().sendData(gCode);
+                    Toast.makeText(getContext(),"Image sent to toaster",Toast.LENGTH_SHORT).show();
+                    Log.d("TESTING", "Sending G Code:\n" + gCode);
+                }
+
                 break;
             default:
                 break;
