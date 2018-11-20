@@ -34,6 +34,7 @@ public class ToastbrushWebAPI
         endpoint_map.put("GetImagesByUser", API_URL + "getimagesbyuser");
         endpoint_map.put("GetUser", API_URL + "getuser");
         endpoint_map.put("SendImage", API_URL + "sendimage");
+        endpoint_map.put("DeleteImage", API_URL + "deleteimage");
         endpoint_map.put("VoteComment", API_URL + "votecomment");
         endpoint_map.put("VoteImage", API_URL + "voteimage");
         endpoints = Collections.unmodifiableMap(endpoint_map);
@@ -296,6 +297,21 @@ public class ToastbrushWebAPI
 
         }
     }
+
+    public static void deleteImage(String imageId, Response.Listener<String> callback)
+    {
+        JSONObject request = new JSONObject();
+        try
+        {
+            request.put("Image", imageId);
+            post(endpoints.get("DeleteImage"), request.toString(), callback);
+        }
+        catch(Exception e)
+        {
+
+        }
+    }
+
     public static void voteComment(int id, String user, VoteValue value, Response.Listener<String> callback)
     {
         JSONObject request = new JSONObject();

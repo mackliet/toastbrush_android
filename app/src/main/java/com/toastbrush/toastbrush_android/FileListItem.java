@@ -9,11 +9,13 @@ public class FileListItem
     public Bitmap mIcon;
     public JSONArray mPoints;
     public Long mTimestamp;
+    public String mDatabaseId;
     public FileListItem(String filename)
     {
         mFilename = filename;
         mIcon = null;
         mPoints = null;
         mTimestamp = null;
+        mDatabaseId = null;
     }
 }

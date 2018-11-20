@@ -19,6 +19,6 @@
         android:id="@+id/account_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Not Signed in"/>
+        android:text="\nNot Signed in"/>
 
 </LinearLayout>

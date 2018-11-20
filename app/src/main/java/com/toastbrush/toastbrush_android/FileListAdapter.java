@@ -55,27 +55,38 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
                     .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             row = inflater.inflate(R.layout.file_list_item, parent, false);
         }
+            // Get item
+            FileListItem toastImage = getItem(position);
 
-        // Get item
-        FileListItem toastImage = getItem(position);
+            // Get reference to ImageView
+            toastImageIcon = (ImageView) row.findViewById(R.id.toast_image_icon);
 
-        // Get reference to ImageView
-        toastImageIcon = (ImageView) row.findViewById(R.id.toast_image_icon);
+            // Get reference to TextView for name
+            toastImageName = (TextView) row.findViewById(R.id.toast_image_name);
 
-        // Get reference to TextView for name
-        toastImageName = (TextView) row.findViewById(R.id.toast_image_name);
+            // Get reference to TextView for Timestamp
+            toastImageTimestamp = (TextView) row.findViewById(R.id.toast_image_timestamp);
 
-        // Get reference to TextView for Timestamp
-        toastImageTimestamp = (TextView) row.findViewById(R.id.toast_image_timestamp);
+            //Set toastImage name
+            toastImageName.setText(toastImage.mFilename);
 
-        //Set toastImage name
-        toastImageName.setText(toastImage.mFilename);
-
-        //Set timestamp
-        toastImageTimestamp.setText((new DateFormat()).format("MM/dd/yyyy", toastImage.mTimestamp).toString());
-
-        toastImageIcon.setImageBitmap(Bitmap.createScaledBitmap(toastImage.mIcon, 200, 200, false));
-
+            //Set timestamp
+            toastImageTimestamp.setText((new DateFormat()).format("MM/dd/yyyy", toastImage.mTimestamp).toString());
+        if(toastImage.mIcon != null)
+        {
+            try
+            {
+                toastImageIcon.setImageBitmap(Bitmap.createScaledBitmap(toastImage.mIcon, 200, 200, false));
+            }
+            catch(Exception e)
+            {
+                toastImageIcon.setImageBitmap(Bitmap.createScaledBitmap(DrawingView.getBlankImage(), 200, 200, false));
+            }
+        }
+        else
+        {
+            toastImageIcon.setImageBitmap(Bitmap.createScaledBitmap(DrawingView.getBlankImage(), 200, 200, false));
+        }
         return row;
     }
 }

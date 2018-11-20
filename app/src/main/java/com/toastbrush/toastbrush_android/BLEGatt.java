@@ -164,8 +164,7 @@ public class BLEGatt extends BluetoothGattCallback {
                     data = characteristic.getStringValue(0);
                     try {
                         int requestedPacket = parseInt(data);
-                        if (requestedPacket > mPacketCounter) {
-                            ++mPacketCounter;
+                        if (requestedPacket > mPacketCounter && !writeInProgress){
                             sendChunk();
                         }
                     }
@@ -221,15 +220,25 @@ public class BLEGatt extends BluetoothGattCallback {
             }
         }
         if(data_to_send.equals("")) {
-            --mPacketCounter;
             return;
+        }
+        send(data_to_send);
+        try
+        {
+            Thread.sleep(2000);
+        }
+        catch(Exception e)
+        {
+
         }
         if(data_to_send.contains("M30"))
         {
             mPacketCounter = -1;
         }
-        send(data_to_send);
-
+        else
+        {
+            ++mPacketCounter;
+        }
     }
 
     public void send(String s)

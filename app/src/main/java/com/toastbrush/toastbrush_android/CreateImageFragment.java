@@ -23,6 +23,8 @@ import com.toastbrush.ToastbrushApplication;
 
 import java.io.File;
 
+import static com.toastbrush.ToastbrushApplication.getGoogleAccount;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -77,6 +79,12 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
     }
 
     @Override
+    public void onStart() {
+
+        super.onStart();
+    }
+
+    @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnFragmentInteractionListener) {
@@ -109,11 +117,13 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                         create_save_dialog(SaveType.LOCAL);
                     }
                 });
-                saveDialog.setNegativeButton("Database Save", new DialogInterface.OnClickListener(){
-                    public void onClick(DialogInterface dialog, int which){
-                        create_save_dialog(SaveType.DATABASE);
-                    }
-                });
+                if(getGoogleAccount() != null) {
+                    saveDialog.setNegativeButton("Database Save", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            create_save_dialog(SaveType.DATABASE);
+                        }
+                    });
+                }
 
                 saveDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
                     public void onClick(DialogInterface dialog, int which){
@@ -210,13 +220,20 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                     {
                         case LOCAL:
                             mDrawingView.save_canvas_local(filename);
+                            Toast.makeText(getContext(),"Successfully saved file",Toast.LENGTH_SHORT).show();
                             break;
                         case DATABASE:
-                            mDrawingView.save_canvas_database(filename);
+                            if(getGoogleAccount() == null)
+                            {
+                                Toast.makeText(getContext(),"Logged out. Can't save to database.",Toast.LENGTH_SHORT).show();
+                            }
+                            else
+                            {
+                                mDrawingView.save_canvas_database(filename, getGoogleAccount().getEmail(), "description");
+                            }
                             break;
                     }
                     dialog.dismiss();
-                    Toast.makeText(getContext(),"Successfully saved file",Toast.LENGTH_SHORT).show();
                 }
             }
         });

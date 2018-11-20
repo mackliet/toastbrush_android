@@ -51,8 +51,8 @@ public class DrawingView extends View {
     //drawing and canvas paint
     private Paint drawPaint, canvasPaint;
     //initial color
-    private int paintColor = Color.parseColor("#f5ca62");
-    private int backgroundColor = Color.parseColor("#ffecc0");
+    private static int paintColor = Color.parseColor("#f5ca62");
+    private static int backgroundColor = Color.parseColor("#ffecc0");
     //canvas
     private Canvas drawCanvas;
     //canvas bitmap
@@ -158,22 +158,27 @@ public class DrawingView extends View {
         DatabaseHelper.saveToastImage(filename, canvasBitmap, mDrawingPoints);
     }
 
-    public void save_canvas_database(String filename)
+    public void save_canvas_database(String filename, String user, String description)
     {
         String data = DatabaseHelper.packageImageInfo(canvasBitmap, mDrawingPoints);
-        ToastbrushWebAPI.sendImage(filename, "mmackliet", "description", filename, new Response.Listener<String>() {
+        ToastbrushWebAPI.sendImage(filename, user, description, data, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 try {
                     JSONObject json = new JSONObject(response);
-                    if(json.getBoolean("Success"))
+                    if(json.getBoolean("success"))
                     {
-                        Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully saved to database", Toast.LENGTH_SHORT);
-                    };
+                        Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully saved to database", Toast.LENGTH_SHORT).show();
+                    }
+                    else
+                    {
+                        Toast.makeText(ToastbrushApplication.getAppContext(), "Error saving to database", Toast.LENGTH_SHORT).show();
+
+                    }
                 }
                 catch(Exception e)
                 {
-                    Toast.makeText(ToastbrushApplication.getAppContext(), "Error saving to database", Toast.LENGTH_SHORT);
+                    Toast.makeText(ToastbrushApplication.getAppContext(), "Exception parsing server response:\n" + response, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -201,6 +206,13 @@ public class DrawingView extends View {
         {
 
         }
+        return ret_val;
+    }
+
+    public static Bitmap getBlankImage()
+    {
+        Bitmap ret_val = Bitmap.createBitmap(800, 800, Bitmap.Config.ARGB_8888);
+        ret_val.eraseColor(backgroundColor);
         return ret_val;
     }
 }

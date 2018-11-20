@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "908197416455",
+    "firebase_url": "https://toastbrush-414d8.firebaseio.com",
+    "project_id": "toastbrush-414d8",
+    "storage_bucket": "toastbrush-414d8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:908197416455:android:df1a3417192c46ce",
+        "android_client_info": {
+          "package_name": "com.toastbrush.toastbrush_android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "908197416455-22s4j5k9hn9hpf74bh0f5k9s5fvh8bfg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toastbrush.toastbrush_android",
+            "certificate_hash": "4fdbf51526397a9e501e8dd65a55479b9b243afa"
+          }
+        },
+        {
+          "client_id": "908197416455-t17oo11085bv9a2bevfe8cpn0pqkgmj3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDblRetC1UKpm2_cdEk2m9G3o-HO6fGIDk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "908197416455-t17oo11085bv9a2bevfe8cpn0pqkgmj3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
