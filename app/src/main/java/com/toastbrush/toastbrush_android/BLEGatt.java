@@ -199,6 +199,29 @@ public class BLEGatt extends BluetoothGattCallback {
         ArrayList<String> instructions = new ArrayList<String>(Arrays.asList(s.split("\n")));
         for(String instruction : instructions)
         {
+            if(instruction.equals("M30"))
+            {
+                instruction = "M";
+            }
+            else
+            {
+                String[] insts = instruction.split(" ");
+                Log.e("TESTING", instruction);
+                int x = Integer.parseInt(insts[1].substring(1));
+                int y = Integer.parseInt(insts[2].substring(1));
+                instruction = "0";
+                if(insts[0].equals("G01"))
+                {
+                    instruction = "1";
+                    int f = Integer.parseInt(insts[3].substring(1));
+                    instruction += "" + (char)x + (char)y + (char)f;
+
+                    Log.e("TESTING", x + " " + y + " " + f + " " +instruction);
+                }
+                else {
+                    instruction += "" + (char) x + (char) y;
+                }
+            }
             mSendQueue.add(instruction + "\n");
         }
     }
@@ -210,7 +233,7 @@ public class BLEGatt extends BluetoothGattCallback {
         while(!mSendQueue.isEmpty())
         {
             String test_string = data_to_send + mSendQueue.peek();
-            if(test_string.length() > 550)
+            if(test_string.length() > 580)
             {
                 break;
             }
@@ -225,7 +248,7 @@ public class BLEGatt extends BluetoothGattCallback {
         send(data_to_send);
         try
         {
-            Thread.sleep(2000);
+            Thread.sleep(4000);
         }
         catch(Exception e)
         {
@@ -245,7 +268,7 @@ public class BLEGatt extends BluetoothGattCallback {
     {
         Log.d("TESTING", "Sending:\n" + s);
         if(mConnectionState == STATE_CONNECTED && writeInProgress == false && rx != null) {
-            byte[] data = s.getBytes(Charset.forName("UTF-8"));
+            byte[] data = s.getBytes(Charset.forName("ISO-8859-1"));//s.getBytes(Charset.forName("UTF-8"));
             rx.setValue(data);
             writeInProgress = true; // Set the write in progress flag
             mBluetoothGatt.writeCharacteristic(rx);

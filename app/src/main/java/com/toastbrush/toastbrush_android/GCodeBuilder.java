@@ -47,12 +47,14 @@ public class GCodeBuilder
     private static int convertY(double y)
     {
         // TODO
+        y = y / 3.5;
         return(int)y;
     }
 
     private static int convertX(double x)
     {
         // TODO
+        x = x / 3.5;
         return (int)x;
     }
 
