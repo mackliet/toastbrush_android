@@ -230,6 +230,12 @@ public class MainActivity
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
             setupAccountGUI(account);
+            ToastbrushWebAPI.addUser(getGoogleAccount().getEmail(), getGoogleAccount().getEmail(), "", "", new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    Log.d("TESTING", response);
+                }
+            });
             return true;
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
@@ -238,12 +244,6 @@ public class MainActivity
             Toast.makeText(ToastbrushApplication.getAppContext(), "Failed to sign in", Toast.LENGTH_SHORT).show();
 
         }
-        ToastbrushWebAPI.addUser(getGoogleAccount().getEmail(), getGoogleAccount().getEmail(), "", "", new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                Log.d("TESTING", response);
-            }
-        });
         return false;
     }
 

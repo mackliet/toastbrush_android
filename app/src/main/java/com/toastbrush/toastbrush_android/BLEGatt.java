@@ -254,7 +254,7 @@ public class BLEGatt extends BluetoothGattCallback {
         {
 
         }
-        if(data_to_send.contains("M30"))
+        if(data_to_send.contains("M"))
         {
             mPacketCounter = -1;
         }
