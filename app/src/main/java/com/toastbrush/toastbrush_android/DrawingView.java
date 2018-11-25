@@ -153,9 +153,9 @@ public class DrawingView extends View {
         invalidate();
     }
 
-    public void save_canvas_local(String filename)
+    public void save_canvas_local(String filename, String description)
     {
-        DatabaseHelper.saveToastImage(filename, canvasBitmap, mDrawingPoints);
+        DatabaseHelper.saveToastImage(filename, description, canvasBitmap, mDrawingPoints);
     }
 
     public void save_canvas_database(String filename, String user, String description)

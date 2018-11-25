@@ -74,7 +74,6 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
             mDrawingView.setImage(image_data);
             bundle.remove("Image_data");
         }
-        ToastbrushApplication.getBluetoothServer();
         return mThis;
     }
 
@@ -133,16 +132,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 saveDialog.show();
                 break;
             case R.id.draw_send_button:
-                ToastbrushApplication.getBluetoothServer().connectGATT();
-                int permissionCheck = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-                if (permissionCheck != PackageManager.PERMISSION_GRANTED){
-                    if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)){
-                        Toast.makeText(getContext(), "The permission to get BLE location data is required", Toast.LENGTH_SHORT).show();
-                    }else{
-                        requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-                    }
-                }
-                else if(!ToastbrushApplication.getBluetoothServer().isConnected())
+                if(!ToastbrushApplication.getBluetoothServer().isConnected())
                 {
                     Toast.makeText(getContext(),"Not connected to toaster",Toast.LENGTH_SHORT).show();
                 }
@@ -187,10 +177,11 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
         builder.setTitle(title);
         builder.setMessage("Input name for toast image");
 
-        // Set up the input textbox
-        final EditText input = new EditText(this.getContext());
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        builder.setView(input);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialoglayout = inflater.inflate(R.layout.save_dialog, null);
+        builder.setView(dialoglayout);
+        final EditText filenameInput = dialoglayout.findViewById(R.id.save_dialog_filename);
+        final EditText descriptionInput = dialoglayout.findViewById(R.id.save_dialog_description);
 
         // Set up the buttons
         builder.setPositiveButton("OK", null);
@@ -208,8 +199,8 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
             @Override
             public void onClick(View v)
             {
-                String filename = input.getText().toString();
-
+                String filename = filenameInput.getText().toString();
+                String description = descriptionInput.getText().toString();
                 if(filename.equals(""))
                 {
                     Toast.makeText(getContext(),"Input an image name",Toast.LENGTH_SHORT).show();
@@ -219,7 +210,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                     switch(save_type)
                     {
                         case LOCAL:
-                            mDrawingView.save_canvas_local(filename);
+                            mDrawingView.save_canvas_local(filename, description);
                             Toast.makeText(getContext(),"Successfully saved file",Toast.LENGTH_SHORT).show();
                             break;
                         case DATABASE:
@@ -229,7 +220,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                             }
                             else
                             {
-                                mDrawingView.save_canvas_database(filename, getGoogleAccount().getEmail(), "description");
+                                mDrawingView.save_canvas_database(filename, getGoogleAccount().getEmail(), description);
                             }
                             break;
                     }

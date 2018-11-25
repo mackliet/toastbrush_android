@@ -29,6 +29,7 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
     private Context context;
     private ImageView toastImageIcon;
     private TextView toastImageName;
+    private TextView toastImageDescription;
     private TextView toastImageTimestamp;
     private List<FileListItem> toastImageList = null;
 
@@ -64,11 +65,17 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
             // Get reference to TextView for name
             toastImageName = (TextView) row.findViewById(R.id.toast_image_name);
 
+            // Get reference to TextView for name
+            toastImageDescription = (TextView) row.findViewById(R.id.toast_image_description);
+
             // Get reference to TextView for Timestamp
             toastImageTimestamp = (TextView) row.findViewById(R.id.toast_image_timestamp);
 
             //Set toastImage name
             toastImageName.setText(toastImage.mFilename);
+
+            //Set toastImage name
+            toastImageDescription.setText(toastImage.mDescription);
 
             //Set timestamp
             toastImageTimestamp.setText((new DateFormat()).format("MM/dd/yyyy", toastImage.mTimestamp).toString());

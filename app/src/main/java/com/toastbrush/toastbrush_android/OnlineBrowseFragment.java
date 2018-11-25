@@ -4,6 +4,10 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -15,9 +19,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.Response;
@@ -29,6 +37,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.toastbrush.ToastbrushApplication.getAppContext;
+import static com.toastbrush.ToastbrushApplication.getGoogleAccount;
 
 
 /**
@@ -46,7 +57,7 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
     private ListView mListView;
     private ArrayList<FileListItem> mToastImageList;
     private FileListAdapter mListAdapter;
-    private JSONArray mQueriedImages;
+    private Drawable mBackground;
     private final Lock mMutex = new ReentrantLock();
 
     public OnlineBrowseFragment() {
@@ -140,6 +151,9 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                         JSONObject imageInfo = list.getJSONObject(i);
                         FileListItem item = new FileListItem(imageInfo.getString("Name"));
                         item.mTimestamp = imageInfo.getLong("date");
+                        item.mDescription = imageInfo.getString("Description");
+                        item.mScore = imageInfo.getLong("Score");
+                        item.mOwner = imageInfo.getString("User");
                         item.mDatabaseId = imageInfo.getString("Image");
                         mToastImageList.add(item);
                     }
@@ -174,6 +188,46 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                                 catch(Exception e)
                                 {
                                     Toast.makeText(ToastbrushApplication.getAppContext(), "Exception parsing server response", Toast.LENGTH_SHORT).show();
+                                }
+                                mMutex.unlock();
+                            }
+                        });
+
+                        ToastbrushWebAPI.getComments(item.mDatabaseId, ToastbrushWebAPI.OrderValue.OLDEST, 1000, 0, new Response.Listener<String>()
+                        {
+
+                            @Override
+                            public void onResponse(String commentResponse)
+                            {
+                                mMutex.lock();
+                                try
+                                {
+                                    JSONObject json = new JSONObject(commentResponse);
+                                    JSONArray commentListJson = json.getJSONArray("list");
+                                    ArrayList<CommentListItem> commentList = new ArrayList<>();
+                                    for(int i = 0; i < commentListJson.length(); i++)
+                                    {
+                                        try
+                                        {
+                                            JSONObject commentJson = commentListJson.getJSONObject(i);
+                                            String owner = commentJson.getString("Owner");
+                                            String fileId = commentJson.getString("File");
+                                            String comment = commentJson.getString("Comment");
+                                            if(fileId.equals(item.mDatabaseId))
+                                            {
+                                                commentList.add(new CommentListItem(owner, comment, 0));
+                                            }
+                                        }
+                                        catch(Exception e)
+                                        {
+                                            Log.d("TESTING", "Error getting comment");
+                                        }
+                                    }
+                                    item.mComments = commentList;
+                                }
+                                catch(Exception e)
+                                {
+                                    Toast.makeText(ToastbrushApplication.getAppContext(), "Exception parsing server response", Toast.LENGTH_LONG).show();
                                 }
                                 mMutex.unlock();
                             }
@@ -216,31 +270,238 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
 
     private void image_option_menu(final int position)
     {
-        AlertDialog.Builder saveDialog = new AlertDialog.Builder(this.getContext());
-        saveDialog.setTitle("Image Options");
-        saveDialog.setMessage("What would you like to do with the image?");
-        saveDialog.setPositiveButton("Delete", new DialogInterface.OnClickListener(){
-            public void onClick(DialogInterface dialog, int which)
-            {
-                deleteImage(position);
-            }
-        });
-        saveDialog.setNegativeButton("Open", new DialogInterface.OnClickListener()
-        {
-            public void onClick(DialogInterface dialog, int which)
-            {
-                FileListItem listItem = mToastImageList.get(position);
-                String pkged_info = DatabaseHelper.packageImageInfo(listItem.mIcon, listItem.mPoints);
-                ((MainActivity)getActivity()).openImageInCreateImageFragment(pkged_info);
-            }
-        });
+        try {
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this.getContext());
+            LayoutInflater inflater = getLayoutInflater();
+            View dialoglayout = inflater.inflate(R.layout.online_image_dialog_view, null);
+            final Button commentButton = dialoglayout.findViewById(R.id.comment_button);
+            final EditText commentText = dialoglayout.findViewById(R.id.comment_text);
+            final TextView title = dialoglayout.findViewById(R.id.image_dialog_title);
+            final ImageView dialogIcon = dialoglayout.findViewById(R.id.image_dialog_icon);
+            title.setText(mToastImageList.get(position).mFilename + " by " + mToastImageList.get(position).mOwner);
+            Bitmap icon = mToastImageList.get(position).mIcon;
+            icon = icon == null ? DrawingView.getBlankImage() : icon;
+            dialogIcon.setImageBitmap(Bitmap.createScaledBitmap(icon, 200, 200, false));
+            commentButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (getGoogleAccount() == null) {
+                        Toast.makeText(ToastbrushApplication.getAppContext(), "Must be signed in to comment", Toast.LENGTH_SHORT).show();
+                    } else {
+                        final CommentListItem comment = new CommentListItem(getGoogleAccount().getEmail(), commentText.getText().toString(), System.currentTimeMillis());
+                        ToastbrushWebAPI.addComment(mToastImageList.get(position).mDatabaseId, comment.mUsername, comment.mComment, new Response.Listener<String>() {
+                            @Override
+                            public void onResponse(String response) {
+                                try {
+                                    JSONObject json = new JSONObject(response);
+                                    if (json.getBoolean("Success")) {
+                                        Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully added comment", Toast.LENGTH_SHORT).show();
+                                        commentText.setText("");
+                                        mToastImageList.get(position).mComments.add(comment);
+                                        mToastImageList.get(position).mCommentListAdapter.notifyDataSetChanged();
+                                    } else {
+                                        Toast.makeText(ToastbrushApplication.getAppContext(), "Failed to add comment", Toast.LENGTH_SHORT).show();
+                                    }
+                                } catch (Exception e) {
+                                    Toast.makeText(ToastbrushApplication.getAppContext(), "Error parsing server response", Toast.LENGTH_SHORT).show();
+                                    Log.e("TESTING", e.toString());
+                                    Log.e("TESTING", response);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            final TextView statsView = dialoglayout.findViewById(R.id.image_stats);
+            statsView.setText("Score: " + mToastImageList.get(position).mScore);
+            final Button upvoteButton = dialoglayout.findViewById(R.id.upvote_button);
+            final Button downvoteButton = dialoglayout.findViewById(R.id.downvote_button);
+            mBackground = upvoteButton.getBackground();
+            upvoteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (mToastImageList.get(position).mVote != ToastbrushWebAPI.VoteValue.UP_VOTE) {
+                        upvote(position, upvoteButton, downvoteButton, statsView);
+                    } else {
+                        neutral_vote(position, upvoteButton, downvoteButton, statsView);
+                    }
+                }
+            });
 
-        saveDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
-            public void onClick(DialogInterface dialog, int which){
-                dialog.cancel();
+            downvoteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (mToastImageList.get(position).mVote != ToastbrushWebAPI.VoteValue.DOWN_VOTE) {
+                        downvote(position, downvoteButton, upvoteButton, statsView);
+                    } else {
+                        neutral_vote(position, upvoteButton, downvoteButton, statsView);
+                    }
+                }
+            });
+            dialogBuilder.setView(dialoglayout);
+            setupComments(dialoglayout, mToastImageList.get(position));
+            if (getGoogleAccount() != null && getGoogleAccount().getEmail().equals(mToastImageList.get(position).mOwner)) {
+                dialogBuilder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        deleteImage(position);
+                    }
+                });
             }
-        });
-        saveDialog.show();
+            dialogBuilder.setNegativeButton("Open", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    FileListItem listItem = mToastImageList.get(position);
+                    String pkged_info = DatabaseHelper.packageImageInfo(listItem.mIcon, listItem.mPoints);
+                    ((MainActivity) getActivity()).openImageInCreateImageFragment(pkged_info);
+                }
+            });
+
+            dialogBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            dialogBuilder.show();
+        }
+        catch (Exception e)
+        {
+            Toast.makeText(ToastbrushApplication.getAppContext(), "Try again", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void neutral_vote(final int position, final Button upvoteButton, final Button downvoteButton, final TextView statsView)
+    {
+        if(getGoogleAccount() == null)
+        {
+            Toast.makeText(ToastbrushApplication.getAppContext(),"Must be signed in to vote", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            ToastbrushWebAPI.voteImage(mToastImageList.get(position).mDatabaseId, getGoogleAccount().getEmail(), ToastbrushWebAPI.VoteValue.NO_VOTE, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    try {
+                        JSONObject json = new JSONObject(response);
+                        if (json.getBoolean("Success")) {
+                            downvoteButton.setBackground(mBackground);
+                            upvoteButton.setBackground(mBackground);
+                            mToastImageList.get(position).mVote = ToastbrushWebAPI.VoteValue.NO_VOTE;
+                            ToastbrushWebAPI.getImageInfo(mToastImageList.get(position).mDatabaseId, new Response.Listener<String>() {
+                                @Override
+                                public void onResponse(String response) {
+                                    try {
+                                        JSONObject json = new JSONObject(response);
+                                        statsView.setText("Score: " + json.getLong("Score"));
+                                    } catch (Exception e) {
+
+                                    }
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(ToastbrushApplication.getAppContext(), "Error parsing server response", Toast.LENGTH_SHORT).show();
+                        Log.e("TESTING", response);
+                        Log.e("TESTING", e.toString());
+                    }
+                }
+            });
+        }
+    }
+
+    private void downvote(final int position, final Button downvoteButton, final Button upvoteButton, final TextView statsView) {
+        if(getGoogleAccount() == null)
+        {
+            Toast.makeText(ToastbrushApplication.getAppContext(),"Must be signed in to vote", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            ToastbrushWebAPI.voteImage(mToastImageList.get(position).mDatabaseId, getGoogleAccount().getEmail(), ToastbrushWebAPI.VoteValue.DOWN_VOTE, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    try {
+                        JSONObject json = new JSONObject(response);
+                        if (json.getBoolean("Success")) {
+                            Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully downvoted", Toast.LENGTH_SHORT).show();
+                            downvoteButton.setBackgroundColor(Color.RED);
+                            upvoteButton.setBackground(mBackground);
+                            mToastImageList.get(position).mVote = ToastbrushWebAPI.VoteValue.DOWN_VOTE;
+                            ToastbrushWebAPI.getImageInfo(mToastImageList.get(position).mDatabaseId, new Response.Listener<String>() {
+                                @Override
+                                public void onResponse(String response) {
+                                    try {
+                                        JSONObject json = new JSONObject(response);
+                                        statsView.setText("Score: " + json.getLong("Score"));
+                                    } catch (Exception e) {
+
+                                    }
+                                }
+                            });
+                        } else {
+                            Toast.makeText(ToastbrushApplication.getAppContext(), "Failed to downvoted", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(ToastbrushApplication.getAppContext(), "Error parsing server response", Toast.LENGTH_SHORT).show();
+                        Log.e("TESTING", response);
+                        Log.e("TESTING", e.toString());
+                    }
+                }
+            });
+        }
+    }
+
+    private void upvote(final int position, final Button upvoteButton, final Button downvoteButton, final TextView statsView) {
+        if(getGoogleAccount() == null)
+        {
+            Toast.makeText(ToastbrushApplication.getAppContext(),"Must be signed in to vote", Toast.LENGTH_SHORT).show();
+        }
+        else
+        {
+            ToastbrushWebAPI.voteImage(mToastImageList.get(position).mDatabaseId, getGoogleAccount().getEmail(), ToastbrushWebAPI.VoteValue.UP_VOTE, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    try
+                    {
+                        JSONObject json = new JSONObject(response);
+                        if(json.getBoolean("Success"))
+                        {
+                            Toast.makeText(ToastbrushApplication.getAppContext(),"Successfully upvoted", Toast.LENGTH_SHORT).show();
+                            upvoteButton.setBackgroundColor(Color.GREEN);
+                            downvoteButton.setBackground(mBackground);
+                            mToastImageList.get(position).mVote = ToastbrushWebAPI.VoteValue.UP_VOTE;
+                            ToastbrushWebAPI.getImageInfo(mToastImageList.get(position).mDatabaseId, new Response.Listener<String>() {
+                                @Override
+                                public void onResponse(String response) {
+                                    try
+                                    {
+                                        JSONObject json = new JSONObject(response);
+                                        statsView.setText("Score: " + json.getLong("Score"));
+                                    }
+                                    catch (Exception e)
+                                    {
+
+                                    }
+                                }
+                            });
+                        }
+                        else
+                        {
+                            Toast.makeText(ToastbrushApplication.getAppContext(),"Failed to upvoted", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        Toast.makeText(ToastbrushApplication.getAppContext(),"Error parsing server response", Toast.LENGTH_SHORT).show();
+                        Log.e("TESTING", response);
+                        Log.e("TESTING", e.toString());
+                    }
+                }
+            });
+        }
+    }
+
+    private void setupComments(View dialogLayout, FileListItem listItem)
+    {
+        CommentListAdapter commentListAdapter = new CommentListAdapter(getContext(), R.layout.comment_layout, listItem.mComments);
+        listItem.mCommentListAdapter = commentListAdapter;
+        ListView commentListView = dialogLayout.findViewById(R.id.comment_list);
+        commentListView.setAdapter(commentListAdapter);
     }
 
     public void deleteImage(final int position)

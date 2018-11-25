@@ -145,6 +145,7 @@ public class MainActivity
         {
             setupAccountGUI(getGoogleAccount());
         }
+        ToastbrushApplication.setupBluetoothServer(this).connectGATT();
     }
 
 

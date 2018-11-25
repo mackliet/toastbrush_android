@@ -1,5 +1,6 @@
 package com.toastbrush.toastbrush_android;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -11,9 +12,13 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -77,7 +82,7 @@ public class BLEGatt extends BluetoothGattCallback {
         return new UUID(MSB | (value << 32), LSB);
     }
 
-    public BLEGatt(Context context) {
+    public BLEGatt(Activity context) {
         super();
         mContext = context;
         final BluetoothManager bluetoothManager =
@@ -88,6 +93,15 @@ public class BLEGatt extends BluetoothGattCallback {
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             ((Activity)mContext).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+
+        int permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(context, Manifest.permission.ACCESS_FINE_LOCATION)){
+                Toast.makeText(context, "The permission to get BLE location data is required", Toast.LENGTH_SHORT).show();
+            }else{
+                context.requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            }
         }
 
         mHandler = new Handler();
@@ -187,6 +201,7 @@ public class BLEGatt extends BluetoothGattCallback {
             };
     public boolean isConnected() { return mConnectionState == STATE_CONNECTED;}
     public boolean readyToSend() { return mSendQueue.isEmpty() && isConnected();};
+    public boolean printing() { return mSendQueue.isEmpty() && isConnected();};
 
     public String getData()
     {
@@ -294,4 +309,21 @@ public class BLEGatt extends BluetoothGattCallback {
                     //});
                 }
             };
+
+    public String getState()
+    {
+        String state = "Not Connected";
+        if(isConnected())
+        {
+            if(readyToSend())
+            {
+                state = "Ready to Print";
+            }
+            else
+            {
+                state = "Waiting for printer...";
+            }
+        }
+        return state;
+    }
 }

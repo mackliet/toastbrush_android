@@ -27,7 +27,7 @@ public class ToastbrushWebAPI
         endpoint_map.put("EditImageDescription", API_URL + "editimagedescription");
         endpoint_map.put("EditUserDescription", API_URL + "edituserdescription");
         endpoint_map.put("EditUserImage", API_URL + "edituserimage");
-        endpoint_map.put("GetComments", API_URL + "getimage");
+        endpoint_map.put("GetComments", API_URL + "getcomments");
         endpoint_map.put("GetImage", API_URL + "getimage");
         endpoint_map.put("GetImageInfo", API_URL + "getimageinfo");
         endpoint_map.put("GetImagesByKeyword", API_URL + "getimagesbykeyword");
@@ -334,7 +334,7 @@ public class ToastbrushWebAPI
         {
             request.put("File", file);
             request.put("User", user);
-            request.put("Value", value);
+            request.put("Value", value.asInt());
             post(endpoints.get("VoteImage"), request.toString(), callback);
         }
         catch(Exception e)

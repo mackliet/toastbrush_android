@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +13,8 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.toastbrush.ToastbrushApplication;
 
 import java.util.ArrayList;
 
@@ -29,6 +32,7 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
     private ArrayList<SettingsListItem> mSettingsList;
     private ListView mListView;
     private SettingsListAdapter mListAdapter;
+    private Handler mHandler;
 
     public SettingsFragment() {
         // Required empty public constructor
@@ -57,13 +61,32 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
         mListView = this_view.findViewById(R.id.settings_list);
         mListView.setOnItemClickListener(this);
         mListView.setAdapter(mListAdapter);
+        mHandler = new Handler();
+// Define the code block to be executed
+        Runnable runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                // Do something here on the main thread
+                String lastState = mSettingsList.get(1).mDescription;
+                String newState = ToastbrushApplication.getBluetoothServer().getState();
+                if(!lastState.equals(newState))
+                {
+                    mSettingsList.get(1).mDescription = newState;
+                    mListAdapter.notifyDataSetChanged();
+                }
+                mHandler.postDelayed(this, 1000);
+            }
+        };
+    // Run the above code block on the main thread after 1 seconds
+        mHandler.post(runnableCode);
         return this_view;
     }
 
     private void addSettings(ArrayList<SettingsListItem> mSettingsList)
     {
-        mSettingsList.add(new SettingsListItem("Toast Darkness", "1"));
-        mSettingsList.add(new SettingsListItem("Toaster Status", "Connected"));
+        String darkness = DatabaseHelper.getSetting("Toast Darkness");
+        mSettingsList.add(new SettingsListItem("Toast Darkness", darkness == null ? "1" : darkness));
+        mSettingsList.add(new SettingsListItem("Toaster Status", "Not Connected"));
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -105,9 +128,30 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
 
                     dialog.dismiss();
                     mSettingsList.get(0).mDescription = types[which];
+                    DatabaseHelper.setSetting("Toast Darkness", types[which]);
                     mListAdapter.notifyDataSetChanged();
                 }
             });
+            b.show();
+        }
+        else if(mSettingsList.get(position).mName.equals("Toaster Status"))
+        {
+            AlertDialog.Builder b = new AlertDialog.Builder(getContext());
+            b.setTitle("Try Reconnecting to toaster?");
+            b.setNegativeButton("Reconnect", new DialogInterface.OnClickListener()
+            {
+                public void onClick(DialogInterface dialog, int which)
+                {
+                    ToastbrushApplication.setupBluetoothServer(getActivity()).connectGATT();
+                }
+            });
+
+            b.setNeutralButton("Cancel", new DialogInterface.OnClickListener(){
+                public void onClick(DialogInterface dialog, int which){
+                    dialog.cancel();
+                }
+            });
+
             b.show();
         }
     }

@@ -1,5 +1,6 @@
 package com.toastbrush;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.support.v7.widget.Toolbar;
@@ -39,13 +40,14 @@ public class ToastbrushApplication extends Application
         return mRequestQueue;
     }
 
+    public static BLEGatt setupBluetoothServer(Activity context)
+    {
+        mBluetoothServer = new BLEGatt(context);
+        return mBluetoothServer;
+    }
+
     public static BLEGatt getBluetoothServer()
     {
-        if (mBluetoothServer == null) {
-            // getApplicationContext() is key, it keeps you from leaking the
-            // Activity or BroadcastReceiver if someone passes one in.
-            mBluetoothServer = new BLEGatt(context);
-        }
         return mBluetoothServer;
     }
 

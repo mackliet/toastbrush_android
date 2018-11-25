@@ -25,7 +25,10 @@ public class GCodeBuilder
                     else
                     {
                         //TODO set speed value to something meaningful
-                        ret_val.append(toastMove(x,y,1));
+                        String setting = DatabaseHelper.getSetting("Toast Darkness");
+                        setting = setting == null ? "1" : setting;
+                        int speed = (Integer.parseInt(setting) - 6) * -1; // Convert darkness to speed
+                        ret_val.append(toastMove(x,y, speed));
                     }
                 }
             }
