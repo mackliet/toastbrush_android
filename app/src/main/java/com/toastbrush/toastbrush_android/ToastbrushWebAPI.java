@@ -236,7 +236,7 @@ public class ToastbrushWebAPI
 
         }
     }
-    public static void getImagesByKeyword(String keyword, OrderValue order, int limit, int offset, Response.Listener<String> callback)
+    public static void getImagesByKeyword(String keyword, OrderValue order, int limit, int offset, String currentUser, Response.Listener<String> callback)
     {
         JSONObject request = new JSONObject();
         try
@@ -245,6 +245,10 @@ public class ToastbrushWebAPI
             request.put("Order", order.asInt());
             request.put("Limit", limit);
             request.put("Offset", offset);
+            if(currentUser != null && !currentUser.equals(""))
+            {
+                request.put("CurrentUser", currentUser);
+            }
             post(endpoints.get("GetImagesByKeyword"), request.toString(), callback);
         }
         catch(Exception e)
@@ -252,7 +256,7 @@ public class ToastbrushWebAPI
 
         }
     }
-    public static void getImagesByUser(String user, OrderValue order, int limit, int offset, Response.Listener<String> callback)
+    public static void getImagesByUser(String user, OrderValue order, int limit, int offset, String currentUser, Response.Listener<String> callback)
     {
         JSONObject request = new JSONObject();
         try
@@ -261,6 +265,10 @@ public class ToastbrushWebAPI
             request.put("Order", order.asInt());
             request.put("Limit", limit);
             request.put("Offset", offset);
+            if(currentUser != null && !currentUser.equals(""))
+            {
+                request.put("CurrentUser", currentUser);
+            }
             post(endpoints.get("GetImagesByUser"), request.toString(), callback);
         }
         catch(Exception e)

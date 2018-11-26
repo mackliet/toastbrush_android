@@ -134,7 +134,7 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
             default:
                 break;
         }
-
+        final String currentUser = getGoogleAccount() == null ? null : getGoogleAccount().getEmail();
         final Response.Listener<String> callback = new Response.Listener<String>()
         {
             @Override
@@ -155,6 +155,22 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                         item.mScore = imageInfo.getLong("Score");
                         item.mOwner = imageInfo.getString("User");
                         item.mDatabaseId = imageInfo.getString("Image");
+                        if(currentUser != null)
+                        {
+                            int score = imageInfo.getInt("UserScore");
+                            if(score == ToastbrushWebAPI.VoteValue.UP_VOTE.asInt())
+                            {
+                                item.mVote = ToastbrushWebAPI.VoteValue.UP_VOTE;
+                            }
+                            else if(score == ToastbrushWebAPI.VoteValue.DOWN_VOTE.asInt())
+                            {
+                                item.mVote = ToastbrushWebAPI.VoteValue.DOWN_VOTE;
+                            }
+                            else
+                            {
+                               item.mVote = ToastbrushWebAPI.VoteValue.NO_VOTE;
+                            }
+                        }
                         mToastImageList.add(item);
                     }
                     mListAdapter.notifyDataSetChanged();
@@ -213,9 +229,10 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                                             String owner = commentJson.getString("Owner");
                                             String fileId = commentJson.getString("File");
                                             String comment = commentJson.getString("Comment");
+                                            long timestamp = commentJson.getLong("date");
                                             if(fileId.equals(item.mDatabaseId))
                                             {
-                                                commentList.add(new CommentListItem(owner, comment, 0));
+                                                commentList.add(new CommentListItem(owner, comment, timestamp));
                                             }
                                         }
                                         catch(Exception e)
@@ -242,14 +259,13 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
             }
         };
 
-
         switch(type)
         {
             case "User":
-                ToastbrushWebAPI.getImagesByUser(query, orderValue, 1000, 0, callback);
+                ToastbrushWebAPI.getImagesByUser(query, orderValue, 1000,0, currentUser, callback);
                 break;
             case "Keyword":
-                ToastbrushWebAPI.getImagesByKeyword(query, orderValue, 1000, 0, callback);
+                ToastbrushWebAPI.getImagesByKeyword(query, orderValue, 1000,  0, currentUser, callback);
                 break;
             default:
                 break;
@@ -295,7 +311,6 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                                 try {
                                     JSONObject json = new JSONObject(response);
                                     if (json.getBoolean("Success")) {
-                                        Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully added comment", Toast.LENGTH_SHORT).show();
                                         commentText.setText("");
                                         mToastImageList.get(position).mComments.add(comment);
                                         mToastImageList.get(position).mCommentListAdapter.notifyDataSetChanged();
@@ -360,6 +375,19 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                     dialog.cancel();
                 }
             });
+            if(getGoogleAccount() != null) {
+                switch (mToastImageList.get(position).mVote) {
+                    case UP_VOTE:
+                        upvote(position, upvoteButton, downvoteButton, statsView);
+                        break;
+                    case DOWN_VOTE:
+                        downvote(position, downvoteButton, upvoteButton, statsView);
+                        break;
+                    default:
+                        neutral_vote(position, upvoteButton, downvoteButton, statsView);
+                        break;
+                }
+            }
             dialogBuilder.show();
         }
         catch (Exception e)
@@ -389,7 +417,10 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                                 public void onResponse(String response) {
                                     try {
                                         JSONObject json = new JSONObject(response);
-                                        statsView.setText("Score: " + json.getLong("Score"));
+                                        long score = json.getLong("Score");
+                                        statsView.setText("Score: " + score);
+                                        mToastImageList.get(position).mScore = score;
+
                                     } catch (Exception e) {
 
                                     }
@@ -418,7 +449,6 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                     try {
                         JSONObject json = new JSONObject(response);
                         if (json.getBoolean("Success")) {
-                            Toast.makeText(ToastbrushApplication.getAppContext(), "Successfully downvoted", Toast.LENGTH_SHORT).show();
                             downvoteButton.setBackgroundColor(Color.RED);
                             upvoteButton.setBackground(mBackground);
                             mToastImageList.get(position).mVote = ToastbrushWebAPI.VoteValue.DOWN_VOTE;
@@ -427,14 +457,16 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                                 public void onResponse(String response) {
                                     try {
                                         JSONObject json = new JSONObject(response);
-                                        statsView.setText("Score: " + json.getLong("Score"));
+                                        long score = json.getLong("Score");
+                                        statsView.setText("Score: " + score);
+                                        mToastImageList.get(position).mScore = score;
                                     } catch (Exception e) {
 
                                     }
                                 }
                             });
                         } else {
-                            Toast.makeText(ToastbrushApplication.getAppContext(), "Failed to downvoted", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ToastbrushApplication.getAppContext(), "Failed to downvote", Toast.LENGTH_SHORT).show();
                         }
                     } catch (Exception e) {
                         Toast.makeText(ToastbrushApplication.getAppContext(), "Error parsing server response", Toast.LENGTH_SHORT).show();
@@ -461,7 +493,6 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                         JSONObject json = new JSONObject(response);
                         if(json.getBoolean("Success"))
                         {
-                            Toast.makeText(ToastbrushApplication.getAppContext(),"Successfully upvoted", Toast.LENGTH_SHORT).show();
                             upvoteButton.setBackgroundColor(Color.GREEN);
                             downvoteButton.setBackground(mBackground);
                             mToastImageList.get(position).mVote = ToastbrushWebAPI.VoteValue.UP_VOTE;
@@ -471,7 +502,9 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                                     try
                                     {
                                         JSONObject json = new JSONObject(response);
-                                        statsView.setText("Score: " + json.getLong("Score"));
+                                        long score = json.getLong("Score");
+                                        statsView.setText("Score: " + score);
+                                        mToastImageList.get(position).mScore = score;
                                     }
                                     catch (Exception e)
                                     {
@@ -482,7 +515,7 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                         }
                         else
                         {
-                            Toast.makeText(ToastbrushApplication.getAppContext(),"Failed to upvoted", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ToastbrushApplication.getAppContext(),"Failed to upvote", Toast.LENGTH_SHORT).show();
                         }
                     }
                     catch(Exception e)
