@@ -3,6 +3,7 @@ package com.toastbrush.toastbrush_android;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -10,8 +11,10 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -25,15 +28,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import static com.android.volley.VolleyLog.TAG;
+import static com.toastbrush.ToastbrushApplication.getAppContext;
 import static java.lang.Integer.parseInt;
 
 public class BLEGatt extends BluetoothGattCallback {
 
+    private final BluetoothManager mBluetoothManager;
     private Handler mHandler;
     private boolean mScanning;
     private UUID SERVICE_UUID = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
@@ -54,6 +61,7 @@ public class BLEGatt extends BluetoothGattCallback {
     private static final int STATE_CONNECTED = 2;
     private int REQUEST_ENABLE_BT = 12;
     private String DEVICE_ADDRESS = "30:AE:A4:BB:F4:2A";
+
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 3000;
 
@@ -82,17 +90,36 @@ public class BLEGatt extends BluetoothGattCallback {
         return new UUID(MSB | (value << 32), LSB);
     }
 
-    public BLEGatt(Activity context) {
+    public BLEGatt(Context context) {
         super();
         mContext = context;
-        final BluetoothManager bluetoothManager =
+        mBluetoothManager =
                 (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-        // Ensures Bluetooth is available on the device and it is enabled. If not,
-        // displays a dialog requesting user permission to enable Bluetooth.
+        mBluetoothAdapter = mBluetoothManager.getAdapter();
+/*
+        mHandler = new Handler();
+        // Stops scanning after a pre-defined scan period.
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mScanning = false;
+                mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            }
+        }, SCAN_PERIOD);
+        */
+        mScanning = true;
+        //mBluetoothAdapter.startLeScan(mLeScanCallback);
+        mContext = context;
+        mSendQueue = new LinkedBlockingDeque<>();
+        mPacketCounter = -1;
+    }
+
+    public BLEGatt enableBluetooth(Activity context)
+    {
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+            mConnectionState = STATE_DISCONNECTED;
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            ((Activity)mContext).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            context.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
         int permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION);
@@ -103,25 +130,27 @@ public class BLEGatt extends BluetoothGattCallback {
                 context.requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
             }
         }
-
-        mHandler = new Handler();
-        // Stops scanning after a pre-defined scan period.
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mScanning = false;
-                mBluetoothAdapter.stopLeScan(mLeScanCallback);
-            }
-        }, SCAN_PERIOD);
-        mScanning = true;
-        mBluetoothAdapter.startLeScan(mLeScanCallback);
-        mContext = context;
-        mSendQueue = new LinkedBlockingDeque<>();
-        mPacketCounter = -1;
+        return this;
     }
 
     public void connectGATT()
     {
+        if(mConnectionState == STATE_DISCONNECTED && mBluetoothAdapter.isEnabled())
+        {
+            Set<BluetoothDevice> connectedDevices = mBluetoothAdapter.getBondedDevices();
+            mDevice = null;
+            for (BluetoothDevice device : connectedDevices) {
+                if (device.getAddress().equals(DEVICE_ADDRESS)) {
+                    mDevice = device;
+                }
+            }
+        }
+
+        if(mDevice == null)
+        {
+            Toast.makeText(getAppContext(),"Not paired with toaster. Open bluetooth settings and pair before trying to connect",Toast.LENGTH_SHORT).show();
+        }
+
         if(mDevice != null && mConnectionState == STATE_DISCONNECTED) {
             mConnectionState = STATE_CONNECTING;
             mBluetoothGatt = mDevice.connectGatt(mContext, true, mGattCallback);
@@ -199,9 +228,16 @@ public class BLEGatt extends BluetoothGattCallback {
                     writeInProgress = false;
                 }
             };
-    public boolean isConnected() { return mConnectionState == STATE_CONNECTED;}
+    public boolean isConnected()
+    {
+        boolean ret_val = mDevice != null && mConnectionState == STATE_CONNECTED && mBluetoothAdapter.isEnabled();
+        if(!mBluetoothAdapter.isEnabled() || mDevice == null)
+        {
+            mConnectionState = STATE_DISCONNECTED;
+        }
+        return  ret_val;
+    }
     public boolean readyToSend() { return mSendQueue.isEmpty() && isConnected();};
-    public boolean printing() { return mSendQueue.isEmpty() && isConnected();};
 
     public String getData()
     {
@@ -289,26 +325,6 @@ public class BLEGatt extends BluetoothGattCallback {
             mBluetoothGatt.writeCharacteristic(rx);
         }
     }
-
-    // Device scan callback.
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
-            new BluetoothAdapter.LeScanCallback() {
-                @Override
-                public void onLeScan(final BluetoothDevice device, int rssi,
-                                     byte[] scanRecord) {
-                    // getActivity().runOnUiThread(new Runnable() {
-                    //  @Override
-                    //   public void run() {
-                    if(device.getAddress().equals(DEVICE_ADDRESS)){
-                        mDevice = device;
-                        mBluetoothAdapter.stopLeScan(this);
-                        //testing.add(device.getAddress());
-                        //mTextView.setText("TEST: " + device.getAddress());
-                    }
-                    //  }
-                    //});
-                }
-            };
 
     public String getState()
     {

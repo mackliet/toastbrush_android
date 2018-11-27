@@ -40,14 +40,17 @@ public class ToastbrushApplication extends Application
         return mRequestQueue;
     }
 
-    public static BLEGatt setupBluetoothServer(Activity context)
+    public static BLEGatt setupBluetoothServer(Activity activity)
     {
-        mBluetoothServer = new BLEGatt(context);
-        return mBluetoothServer;
+        return getBluetoothServer().enableBluetooth(activity);
     }
 
     public static BLEGatt getBluetoothServer()
     {
+        if(mBluetoothServer == null)
+        {
+            mBluetoothServer = new BLEGatt(context);
+        }
         return mBluetoothServer;
     }
 

@@ -76,7 +76,6 @@ public class MainActivity
                 .commit();
         mNavItemId = R.id.create_button;
         mNavigationView.getMenu().findItem(mNavItemId).setChecked(true);
-
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,7 +144,6 @@ public class MainActivity
         {
             setupAccountGUI(getGoogleAccount());
         }
-        ToastbrushApplication.setupBluetoothServer(this).connectGATT();
     }
 
 

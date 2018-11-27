@@ -74,6 +74,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
             mDrawingView.setImage(image_data);
             bundle.remove("Image_data");
         }
+        ToastbrushApplication.setupBluetoothServer(getActivity());
         return mThis;
     }
 
@@ -132,6 +133,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 saveDialog.show();
                 break;
             case R.id.draw_send_button:
+                ToastbrushApplication.setupBluetoothServer(getActivity()).connectGATT();
                 if(!ToastbrushApplication.getBluetoothServer().isConnected())
                 {
                     Toast.makeText(getContext(),"Not connected to toaster",Toast.LENGTH_SHORT).show();
