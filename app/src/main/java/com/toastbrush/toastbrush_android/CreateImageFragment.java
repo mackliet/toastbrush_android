@@ -1,17 +1,12 @@
 package com.toastbrush.toastbrush_android;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
-import android.text.InputType;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,8 +15,6 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.toastbrush.ToastbrushApplication;
-
-import java.io.File;
 
 import static com.toastbrush.ToastbrushApplication.getGoogleAccount;
 
@@ -33,7 +26,6 @@ import static com.toastbrush.ToastbrushApplication.getGoogleAccount;
  * to handle interaction events.
  */
 public class CreateImageFragment extends Fragment implements View.OnClickListener {
-    private OnFragmentInteractionListener mListener;
     private Button mClearButton;
     private Button mSaveButton;
     private Button mToastButton;
@@ -50,20 +42,20 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         // Instantiate things
         View mThis = inflater.inflate(R.layout.fragment_create_image, container, false);
-        mDrawingView = (com.toastbrush.toastbrush_android.DrawingView)mThis.findViewById(R.id.drawing_view);
-        mClearButton = (Button) mThis.findViewById(R.id.draw_clear_button);
-        mSaveButton = (Button) mThis.findViewById(R.id.draw_save_button);
-        mToastButton = (Button) mThis.findViewById(R.id.draw_send_button);
+        mDrawingView = mThis.findViewById(R.id.drawing_view);
+        mClearButton = mThis.findViewById(R.id.draw_clear_button);
+        mSaveButton = mThis.findViewById(R.id.draw_save_button);
+        mToastButton = mThis.findViewById(R.id.draw_send_button);
         mClearButton.setOnClickListener(this);
         mSaveButton.setOnClickListener(this);
         mToastButton.setOnClickListener(this);
@@ -87,9 +79,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
+        if (!(context instanceof OnFragmentInteractionListener)) {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
         }
@@ -98,7 +88,6 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
     }
 
     @Override
@@ -180,7 +169,7 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
         builder.setMessage("Input name for toast image");
 
         LayoutInflater inflater = getLayoutInflater();
-        View dialoglayout = inflater.inflate(R.layout.save_dialog, null);
+        @SuppressLint("InflateParams") View dialoglayout = inflater.inflate(R.layout.save_dialog, null);
         builder.setView(dialoglayout);
         final EditText filenameInput = dialoglayout.findViewById(R.id.save_dialog_filename);
         final EditText descriptionInput = dialoglayout.findViewById(R.id.save_dialog_description);
@@ -242,8 +231,6 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+    interface OnFragmentInteractionListener {
     }
 }

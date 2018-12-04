@@ -1,9 +1,8 @@
 package com.toastbrush.toastbrush_android;
 import android.graphics.Bitmap;
-
 import org.json.JSONArray;
-
 import java.util.ArrayList;
+import static com.toastbrush.toastbrush_android.ToastbrushWebAPI.*;
 
 public class FileListItem
 {
@@ -17,8 +16,8 @@ public class FileListItem
     public String mDatabaseId;
     public String mOwner;
     public long mScore;
-    public ToastbrushWebAPI.VoteValue mVote;
-    public FileListItem(String filename)
+    public VoteValue mVote;
+    FileListItem(String filename)
     {
         mFilename = filename;
         mDescription = "";
@@ -31,6 +30,6 @@ public class FileListItem
         mCommentListAdapter = null;
         mOwner = null;
         mScore = 0;
-        mVote = ToastbrushWebAPI.VoteValue.NO_VOTE;
+        mVote = VoteValue.NO_VOTE;
     }
 }

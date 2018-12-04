@@ -3,16 +3,15 @@ package com.toastbrush.toastbrush_android;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import com.toastbrush.ToastbrushApplication;
 
@@ -24,11 +23,9 @@ import java.util.ArrayList;
  * Activities that contain this fragment must implement the
  * {@link SettingsFragment.OnFragmentInteractionListener} interface
  * to handle interaction events.
- * Use the {@link SettingsFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
 public class SettingsFragment extends Fragment implements AdapterView.OnItemClickListener {
-    private OnFragmentInteractionListener mListener;
     private ArrayList<SettingsListItem> mSettingsList;
     private ListView mListView;
     private SettingsListAdapter mListAdapter;
@@ -38,20 +35,13 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
         // Required empty public constructor
     }
 
-    public static SettingsFragment newInstance() {
-        SettingsFragment fragment = new SettingsFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
-        return fragment;
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View this_view = inflater.inflate(R.layout.fragment_settings, container, false);
@@ -89,19 +79,10 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
         mSettingsList.add(new SettingsListItem("Toaster Status", "Not Connected"));
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
+        if (!(context instanceof OnFragmentInteractionListener)) {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
         }
@@ -110,7 +91,6 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
     }
 
     @Override
@@ -166,8 +146,6 @@ public class SettingsFragment extends Fragment implements AdapterView.OnItemClic
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+    interface OnFragmentInteractionListener {
     }
 }

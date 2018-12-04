@@ -5,7 +5,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.support.v4.util.Pair;
 import android.util.Base64;
 import android.util.Log;
 
@@ -14,24 +13,25 @@ import com.toastbrush.ToastbrushApplication;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class DatabaseHelper
 {
     private static String DATABASE_FILE_PATH;
+    private static SQLiteDatabase mDB;
     public static void saveToastImage(String filename, String description, Bitmap bmp, JSONArray tstPnts)
     {
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        SQLiteDatabase db = getDB();
         create_image_table_if_not_exists(db);
-        SQLiteStatement stmt = db.compileStatement("DELETE FROM Toast_images WHERE image_name=?");
-        stmt.bindString(1, filename);
-        stmt.execute();
-        stmt = db.compileStatement("INSERT INTO Toast_images (image_name, data, timestamp, icon, description) VALUES (?, ?, ?, ?, ?)");
+        SQLiteStatement stmt = db.compileStatement("INSERT OR IGNORE INTO Toast_images (image_name, data, timestamp, icon, description) VALUES (?, ?, ?, ?, ?)");
         stmt.bindString(1, filename);
         stmt.bindString(2, packageImageInfo(bmp, tstPnts));
         stmt.bindLong(3, System.currentTimeMillis());
@@ -40,50 +40,32 @@ public class DatabaseHelper
         stmt.bindBlob(4, bytes.toByteArray());
         stmt.bindString(5, description);
         stmt.execute();
+        stmt.close();
+        stmt = db.compileStatement("UPDATE Toast_images SET data=?, timestamp=?, icon=?, description=? WHERE image_name=?");
+        stmt.bindString(1, packageImageInfo(bmp, tstPnts));
+        stmt.bindLong(2, System.currentTimeMillis());
+        stmt.bindBlob(3, bytes.toByteArray());
+        stmt.bindString(4, description);
+        stmt.bindString(5, filename);
+        stmt.execute();
+        stmt.close();
     }
 
-    public static void deleteToastImage(String filename)
+    static void deleteToastImage(String filename)
     {
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        SQLiteDatabase db = getDB();
         create_image_table_if_not_exists(db);
         SQLiteStatement stmt = db.compileStatement("DELETE FROM Toast_images WHERE image_name=?");
         stmt.bindString(1, filename);
         stmt.execute();
-        stmt.execute();
+        stmt.close();
     }
 
-    public static ArrayList<String> getFilenames()
-    {
-        ArrayList<String> filenames = new ArrayList<>();
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        create_image_table_if_not_exists(db);
-        Cursor cursor = db.rawQuery("SELECT image_name FROM Toast_images", new String[]{});
-        while(cursor.moveToNext())
-        {
-            int index = cursor.getColumnIndex("image_name");
-            filenames.add(cursor.getString(index));
-        }
-        return filenames;
-    }
-
-    public static ArrayList<FileListItem> getFileListItems()
+    static ArrayList<FileListItem> getFileListItems()
     {
         ArrayList<FileListItem> filenames = new ArrayList<>();
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        SQLiteDatabase db = getDB();
         create_image_table_if_not_exists(db);
-        ;
         Cursor cursor = db.rawQuery("SELECT image_name, icon, timestamp, description FROM Toast_images", new String[]{});
         try {
             while (cursor.moveToNext()) {
@@ -97,48 +79,21 @@ public class DatabaseHelper
         }
         catch(Exception e)
         {
-
+            Log.e("TESTING", "Exception in getFileListItems: " + e.getMessage());
         }
+        cursor.close();
         return filenames;
     }
 
-    public static Bitmap getIcon(String filename)
+    static String getImageData(String filename)
     {
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        create_image_table_if_not_exists(db);
-        Cursor cursor = db.rawQuery("SELECT icon FROM Toast_images WHERE image_name=?", new String[]{filename});
-        byte[] byteBitmap = cursor.getBlob(cursor.getColumnIndex("icon"));
-        return BitmapFactory.decodeByteArray(byteBitmap, 0, byteBitmap.length);
-    }
-
-    public static String getImageData(String filename)
-    {
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        SQLiteDatabase db = getDB();
         create_image_table_if_not_exists(db);
         SQLiteStatement stmt = db.compileStatement("SELECT data FROM Toast_images WHERE image_name=?");
         stmt.bindString(1, filename);
-        return stmt.simpleQueryForString();
-    }
-
-    public static long getTimestamp(String filename)
-    {
-        if(DATABASE_FILE_PATH == null)
-    {
-        DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-    }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        create_image_table_if_not_exists(db);
-        SQLiteStatement stmt = db.compileStatement("SELECT timestamp FROM Toast_images WHERE image_name=?");
-        stmt.bindString(1, filename);
-        return stmt.simpleQueryForLong();
+        String ret_val = stmt.simpleQueryForString();
+        stmt.close();
+        return ret_val;
     }
 
     private static void create_image_table_if_not_exists(SQLiteDatabase db)
@@ -151,30 +106,68 @@ public class DatabaseHelper
         db.execSQL("CREATE TABLE IF NOT EXISTS Settings (setting_name TEXT PRIMARY KEY, value TEXT)");
     }
 
-    public static void setSetting(String name, String value)
+    private static void create_cache_table(SQLiteDatabase db)
     {
-        if(DATABASE_FILE_PATH == null)
+        db.execSQL("CREATE TABLE IF NOT EXISTS Restore_cache (value_name TEXT PRIMARY KEY, value BLOB)");
+    }
+
+    private static SQLiteDatabase getDB()
+    {
+        if(mDB == null)
         {
             DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
+            mDB = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
         }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
-        create_settings_table_if_not_exists(db);
-        SQLiteStatement stmt = db.compileStatement("DELETE FROM Settings WHERE setting_name=?");
+        return mDB;
+    }
+
+    public static byte[] getCacheValue(String name)
+    {
+        SQLiteDatabase db = getDB();
+        create_cache_table(db);
+        Cursor cursor = db.rawQuery("SELECT value FROM Restore_cache WHERE value_name=?", new String[]{name});
+        cursor.moveToFirst();
+        byte[] ret_val = cursor.getBlob(cursor.getColumnIndex("value"));
+        cursor.close();
+        db.execSQL("VACUUM");
+        return ret_val;
+    }
+
+    public static void setCacheValue(String name, byte[] value)
+    {
+        SQLiteDatabase db = getDB();
+        create_cache_table(db);
+        SQLiteStatement stmt  = db.compileStatement("INSERT OR IGNORE INTO Restore_cache (value_name, value) VALUES (?, ?)");
         stmt.bindString(1, name);
+        stmt.bindBlob(2, value);
         stmt.execute();
-        stmt = db.compileStatement("INSERT INTO Settings (setting_name, value) VALUES (?, ?)");
+        stmt.close();
+        stmt = db.compileStatement("UPDATE Restore_cache SET value=? WHERE value_name=?");
+        stmt.bindString(2, name);
+        stmt.bindBlob(1, value);
+        stmt.execute();
+        stmt.close();
+    }
+
+    public static void setSetting(String name, String value)
+    {
+        SQLiteDatabase db = getDB();
+        create_settings_table_if_not_exists(db);
+        SQLiteStatement stmt = db.compileStatement("INSERT OR IGNORE INTO Settings (setting_name, value) VALUES (?, ?)");
         stmt.bindString(1, name);
         stmt.bindString(2, value);
         stmt.execute();
+        stmt.close();
+        stmt = db.compileStatement("UPDATE Settings SET value=? WHERE setting_name=?");
+        stmt.bindString(2, name);
+        stmt.bindString(1, value);
+        stmt.execute();
+        stmt.close();
     }
 
     public static String getSetting(String name)
     {
-        if(DATABASE_FILE_PATH == null)
-        {
-            DATABASE_FILE_PATH = ToastbrushApplication.getAppContext().getFilesDir() + "database.db";
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH, null);
+        SQLiteDatabase db = getDB();
         create_settings_table_if_not_exists(db);
         SQLiteStatement stmt = db.compileStatement("SELECT value FROM Settings WHERE setting_name=?");
         stmt.bindString(1, name);
@@ -185,8 +178,9 @@ public class DatabaseHelper
         }
         catch (Exception e)
         {
-
+            Log.e("TESTING", "Exception in getSetting: " + e.getMessage());
         }
+        stmt.close();
         return ret_val;
     }
 
@@ -203,16 +197,23 @@ public class DatabaseHelper
         }
         catch(Exception e)
         {
-
+            Log.e("TESTING", "Exception in packageImageInfo: " + e.getMessage());
         }
         return ret_val;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static String base64EncodeBitmap(Bitmap bmp)
     {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        Bitmap.createScaledBitmap(bmp, 500, 500, false).compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
         return Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+    }
+
+    public static void vacuum()
+    {
+        SQLiteDatabase db = getDB();
+        db.execSQL("VACUUM");
     }
 
     public static Bitmap base64DecodeBitmap(String base64str)
@@ -221,6 +222,39 @@ public class DatabaseHelper
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inMutable = true;
         return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length, options);
+    }
+
+    public static byte[] readInFile(String path)
+    {
+        File file = new File(path);
+        int size = (int) file.length();
+        byte[] bytes = new byte[size];
+        try {
+            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
+            buf.read(bytes, 0, bytes.length);
+            buf.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return bytes;
+    }
+
+    public static void saveToFile(String path, byte[] fileBytes)
+    {
+        try {
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(path));
+            bos.write(fileBytes);
+            bos.flush();
+            bos.close();
+        }
+        catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private DatabaseHelper(){}

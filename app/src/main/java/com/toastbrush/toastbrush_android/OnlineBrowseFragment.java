@@ -67,7 +67,6 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
     }
 
     @Override
@@ -355,7 +354,7 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
             });
             dialogBuilder.setView(dialoglayout);
             setupComments(dialoglayout, mToastImageList.get(position));
-            if (getGoogleAccount() != null && getGoogleAccount().getEmail().equals(mToastImageList.get(position).mOwner)) {
+            if (getGoogleAccount() != null && (getGoogleAccount().getEmail().equals(mToastImageList.get(position).mOwner) || getGoogleAccount().getEmail().equals("m.mackliet@gmail.com"))) {
                 dialogBuilder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         deleteImage(position);

@@ -3,7 +3,6 @@ package com.toastbrush.toastbrush_android;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -11,13 +10,9 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -26,9 +21,7 @@ import android.widget.Toast;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
@@ -41,8 +34,6 @@ import static java.lang.Integer.parseInt;
 public class BLEGatt extends BluetoothGattCallback {
 
     private final BluetoothManager mBluetoothManager;
-    private Handler mHandler;
-    private boolean mScanning;
     private UUID SERVICE_UUID = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
     private UUID RX_CHAR_UUID = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E");
     private UUID TX_CHAR_UUID = UUID.fromString("6E400003-B5A3-F393-E0A9-E50E24DCCA9E");
@@ -54,62 +45,30 @@ public class BLEGatt extends BluetoothGattCallback {
     private Queue<String> mSendQueue;
 
     private int mConnectionState = STATE_DISCONNECTED;
-    private static final int PERMISSIONS_GRANTED = 10;
-
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
     private int REQUEST_ENABLE_BT = 12;
     private String DEVICE_ADDRESS = "30:AE:A4:BB:F4:2A";
 
-    // Stops scanning after 10 seconds.
-    private static final long SCAN_PERIOD = 3000;
-
     private boolean writeInProgress;
-
-    public final static String ACTION_GATT_CONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED =
-            "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
 
     private BluetoothDevice mDevice;
     private BluetoothGatt mBluetoothGatt;
-    private Context mContext;
     private BluetoothAdapter mBluetoothAdapter;
 
-    public UUID convertFromInteger(int i) {
+    @SuppressWarnings("SameParameterValue")
+    private UUID convertFromInteger(int i) {
         final long MSB = 0x0000000000001000L;
         final long LSB = 0x800000805f9b34fbL;
-        long value = i & 0xFFFFFFFF;
-        return new UUID(MSB | (value << 32), LSB);
+        return new UUID(MSB | (((long)i) << 32), LSB);
     }
 
-    public BLEGatt(Context context) {
+    public BLEGatt() {
         super();
-        mContext = context;
         mBluetoothManager =
-                (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = mBluetoothManager.getAdapter();
-/*
-        mHandler = new Handler();
-        // Stops scanning after a pre-defined scan period.
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mScanning = false;
-                mBluetoothAdapter.stopLeScan(mLeScanCallback);
-            }
-        }, SCAN_PERIOD);
-        */
-        mScanning = true;
-        //mBluetoothAdapter.startLeScan(mLeScanCallback);
-        mContext = context;
+                (BluetoothManager) getAppContext().getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = Objects.requireNonNull(mBluetoothManager).getAdapter();
         mSendQueue = new LinkedBlockingDeque<>();
         mPacketCounter = -1;
     }
@@ -153,7 +112,7 @@ public class BLEGatt extends BluetoothGattCallback {
 
         if(mDevice != null && mConnectionState == STATE_DISCONNECTED) {
             mConnectionState = STATE_CONNECTING;
-            mBluetoothGatt = mDevice.connectGatt(mContext, true, mGattCallback);
+            mBluetoothGatt = mDevice.connectGatt(getAppContext(), true, mGattCallback);
         }
     }
 
@@ -163,24 +122,21 @@ public class BLEGatt extends BluetoothGattCallback {
                 @Override
                 public void onConnectionStateChange(BluetoothGatt gatt, int status,
                                                     int newState) {
-                    String intentAction;
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        intentAction = ACTION_GATT_CONNECTED;
-
-                        //broadcastUpdate(intentAction);
                         Log.i(TAG, "Connected to GATT server.");
                         try {
                             Thread.sleep(600);
                             mConnectionState = STATE_CONNECTED;
-                        }catch(Exception e){}
+                        }catch(Exception e)
+                        {
+                            Log.i(TAG, "Exception in onConnectionStateChange: " + e.getMessage());
+                        }
                         Log.i(TAG, "Attempting to start service discovery:" +
                                 mBluetoothGatt.discoverServices());
 
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                        intentAction = ACTION_GATT_DISCONNECTED;
                         mConnectionState = STATE_DISCONNECTED;
                         Log.i(TAG, "Disconnected from GATT server.");
-                        //broadcastUpdate(intentAction);
                     }
                 }
 
@@ -237,7 +193,7 @@ public class BLEGatt extends BluetoothGattCallback {
         }
         return  ret_val;
     }
-    public boolean readyToSend() { return mSendQueue.isEmpty() && isConnected();};
+    public boolean readyToSend() { return mSendQueue.isEmpty() && isConnected();}
 
     public String getData()
     {
@@ -246,41 +202,42 @@ public class BLEGatt extends BluetoothGattCallback {
 
     public void sendData(String s)
     {
-        boolean send_when_done = mSendQueue.isEmpty(); // If queue was empty, send when done
-        ArrayList<String> instructions = new ArrayList<String>(Arrays.asList(s.split("\n")));
+        ArrayList<String> instructions = new ArrayList<>(Arrays.asList(s.split("\n")));
+        String compressed;
         for(String instruction : instructions)
         {
             if(instruction.equals("M30"))
             {
-                instruction = "M";
+                compressed = "M";
             }
             else
             {
                 String[] insts = instruction.split(" ");
-                Log.e("TESTING", instruction);
                 int x = Integer.parseInt(insts[1].substring(1));
                 int y = Integer.parseInt(insts[2].substring(1));
-                instruction = "0";
+                compressed = "0";
                 if(insts[0].equals("G01"))
                 {
-                    instruction = "1";
+                    compressed = "1";
                     int f = Integer.parseInt(insts[3].substring(1));
-                    instruction += "" + (char)x + (char)y + (char)f;
+                    compressed += "" + (char)x + (char)y + (char)f;
 
-                    Log.e("TESTING", x + " " + y + " " + f + " " +instruction);
+                    Log.e("COMPRESSED\n", instruction + "\n" + "x=" + (int)((char)x) + "y=" + (int)((char)y) + "f=" + (int)((char)f) + "\n" + compressed + "\n" + compressed.length() + "bytes");
                 }
                 else {
-                    instruction += "" + (char) x + (char) y;
+                    compressed += "" + (char) x + (char) y;
+                    Log.e("COMPRESSED\n", instruction + "\n" + "x=" + (int)((char)x) + "y=" + (int)((char)y) + "\n" + compressed + "\n" + compressed.length() + "bytes");
+
                 }
             }
-            mSendQueue.add(instruction + "\n");
+            mSendQueue.add(compressed + "\n");
         }
     }
 
     private void sendChunk()
     {
         Log.d("TESTING", "Sending chunk");
-        String data_to_send = "";
+        StringBuilder data_to_send = new StringBuilder();
         while(!mSendQueue.isEmpty())
         {
             String test_string = data_to_send + mSendQueue.peek();
@@ -290,22 +247,22 @@ public class BLEGatt extends BluetoothGattCallback {
             }
             else
             {
-                data_to_send += mSendQueue.poll();
+                data_to_send.append(mSendQueue.poll());
             }
         }
-        if(data_to_send.equals("")) {
+        if(data_to_send.toString().equals("")) {
             return;
         }
-        send(data_to_send);
+        send(data_to_send.toString());
         try
         {
             Thread.sleep(4000);
         }
         catch(Exception e)
         {
-
+            Log.e("TESTING", "Exception in sendChunk: " + e.getMessage());
         }
-        if(data_to_send.contains("M"))
+        if(data_to_send.toString().contains("M"))
         {
             mPacketCounter = -1;
         }
@@ -315,11 +272,11 @@ public class BLEGatt extends BluetoothGattCallback {
         }
     }
 
-    public void send(String s)
+    private void send(String s)
     {
         Log.d("TESTING", "Sending:\n" + s);
-        if(mConnectionState == STATE_CONNECTED && writeInProgress == false && rx != null) {
-            byte[] data = s.getBytes(Charset.forName("ISO-8859-1"));//s.getBytes(Charset.forName("UTF-8"));
+        if(mConnectionState == STATE_CONNECTED && !writeInProgress && rx != null) {
+            byte[] data = s.getBytes(Charset.forName("ISO-8859-1"));
             rx.setValue(data);
             writeInProgress = true; // Set the write in progress flag
             mBluetoothGatt.writeCharacteristic(rx);

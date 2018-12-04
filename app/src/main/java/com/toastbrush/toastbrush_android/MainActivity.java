@@ -1,5 +1,6 @@
 package com.toastbrush.toastbrush_android;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
@@ -30,12 +32,11 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageRequest;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.Task;
 import com.toastbrush.ToastbrushApplication;
+
+import java.util.Objects;
 
 import static com.toastbrush.ToastbrushApplication.getGoogleAccount;
 import static com.toastbrush.ToastbrushApplication.getSignInClient;
@@ -88,7 +89,7 @@ public class MainActivity
         setSupportActionBar(toolbar);
 
         ActionBar actionbar = getSupportActionBar();
-        actionbar.setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(actionbar).setDisplayHomeAsUpEnabled(true);
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
 
 
@@ -129,7 +130,7 @@ public class MainActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
-        getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, frag).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, Objects.requireNonNull(frag)).commit();
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
 
@@ -137,9 +138,9 @@ public class MainActivity
         mNavigationView.bringToFront();
         mNavigationView.setNavigationItemSelectedListener(this);
         setupAccountSwitching();
-        View navHeader = ((NavigationView)findViewById(R.id.nav_view)).getHeaderView(0);
-        mAccountImage = (ImageView)navHeader.findViewById(R.id.account_picture);
-        mAccountText = (TextView)navHeader.findViewById(R.id.account_text);
+        View navHeader = mNavigationView.getHeaderView(0);
+        mAccountImage = navHeader.findViewById(R.id.account_picture);
+        mAccountText = navHeader.findViewById(R.id.account_text);
         if(wasSignedIn())
         {
             setupAccountGUI(getGoogleAccount());
@@ -228,7 +229,7 @@ public class MainActivity
     private boolean handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-            setupAccountGUI(account);
+            setupAccountGUI(Objects.requireNonNull(account));
             ToastbrushWebAPI.addUser(getGoogleAccount().getEmail(), getGoogleAccount().getEmail(), "", "", new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
@@ -246,6 +247,7 @@ public class MainActivity
         return false;
     }
 
+    @SuppressLint("SetTextI18n")
     private void setupAccountGUI(GoogleSignInAccount account) {
         // Signed in successfully, show authenticated UI.
         mAccountText.setText(account.getDisplayName() + "\n" + account.getEmail());
@@ -292,7 +294,7 @@ public class MainActivity
     }
 
     @Override
-    public boolean onNavigationItemSelected(final MenuItem menuItem) {
+    public boolean onNavigationItemSelected(@NonNull final MenuItem menuItem) {
 // update highlighted item in the navigation menu
         menuItem.setChecked(true);
         switch (menuItem.getItemId()) {
@@ -328,7 +330,6 @@ public class MainActivity
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
     public void onFragmentInteraction(Uri uri) {
 
     }

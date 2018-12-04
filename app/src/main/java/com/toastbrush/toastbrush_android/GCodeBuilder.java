@@ -1,5 +1,7 @@
 package com.toastbrush.toastbrush_android;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -24,7 +26,6 @@ public class GCodeBuilder
                     }
                     else
                     {
-                        //TODO set speed value to something meaningful
                         String setting = DatabaseHelper.getSetting("Toast Darkness");
                         setting = setting == null ? "1" : setting;
                         int speed = (Integer.parseInt(setting) - 6) * -1; // Convert darkness to speed
@@ -39,6 +40,7 @@ public class GCodeBuilder
 
         }
         ret_val.append(endProgram());
+        Log.d("TESTING", "GCODE\n" + ret_val.toString());
         return ret_val.toString();
     }
 
@@ -49,16 +51,18 @@ public class GCodeBuilder
 
     private static int convertY(double y)
     {
-        // TODO
-        y = y / 3.5;
-        return(int)y;
+        int ret_y = (int)y;
+        ret_y = ret_y > 255 ? 255 : ret_y;
+        ret_y = ret_y < 0 ? 0 : ret_y;
+        return ret_y;
     }
 
     private static int convertX(double x)
     {
-        // TODO
-        x = x / 3.5;
-        return (int)x;
+        int ret_x = (int)x;
+        ret_x = ret_x > 255 ? 255 : ret_x;
+        ret_x = ret_x < 0 ? 0 : ret_x;
+        return ret_x;
     }
 
     public static String rapidMove(int x, int y)

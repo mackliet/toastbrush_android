@@ -1,49 +1,28 @@
 package com.toastbrush.toastbrush_android;
 
-import android.app.AlertDialog;
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.provider.ContactsContract;
-import android.provider.MediaStore;
-import android.support.annotation.Nullable;
-import android.text.InputType;
-import android.util.AttributeSet;
-import android.util.Base64;
-import android.util.Base64OutputStream;
-import android.util.Log;
-import android.view.View;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.os.Parcelable;
+import android.support.annotation.Nullable;
+import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
-import android.support.v4.util.Pair;
-import android.widget.EditText;
+import android.view.View;
 import android.widget.Toast;
 
 import com.android.volley.Response;
 import com.toastbrush.ToastbrushApplication;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 public class DrawingView extends View {
     //drawing path
@@ -66,7 +45,50 @@ public class DrawingView extends View {
     public DrawingView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         setupDrawing();
+        //restoreState();
     }
+
+    @Override
+    public Parcelable onSaveInstanceState() {
+        saveState();
+        return super.onSaveInstanceState();
+    }
+
+    private void saveState()
+    {
+        if(canvasBitmap != null) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            canvasBitmap.compress(Bitmap.CompressFormat.PNG, 100, bytes);
+            DatabaseHelper.saveToFile(getRestoreBitmapPath(), bytes.toByteArray());
+        }
+        if(mDrawingPoints != null) {
+            DatabaseHelper.saveToFile(getRestorePointsPath(), mDrawingPoints.toString().getBytes());
+        }
+    }
+/*
+    @Override
+    public void onRestoreInstanceState(Parcelable state) {
+        restoreState();
+        super.onRestoreInstanceState(state);
+    }
+*/
+    private void restoreState() {
+        if(canvasBitmap == null) {
+            try {
+                byte[] bitmapBytes = DatabaseHelper.readInFile(getRestoreBitmapPath());
+                byte[] ptsBytes = DatabaseHelper.readInFile(getRestorePointsPath());
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inMutable = true;
+                canvasBitmap = BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length, options);
+                mDrawingPoints = new JSONArray(ptsBytes);
+            } catch (Exception e) {
+                Log.e("TESTING", "Exception thrown when unpackaging state:\n" + e.toString());
+                canvasBitmap = null;
+                mDrawingPoints = null;
+            }
+        }
+    }
+
 
     private void setupDrawing() {
         mDrawingPoints = new JSONArray();
@@ -92,9 +114,9 @@ public class DrawingView extends View {
         }
         else
         {
-            canvasBitmap.setHeight(h);
-            canvasBitmap.setWidth(w);
+            canvasBitmap = Bitmap.createScaledBitmap(canvasBitmap, mWidth, mHeight, false);
         }
+        drawPaint.setStrokeWidth((4*mWidth)/100);
         drawCanvas = new Canvas(canvasBitmap);
     }
 
@@ -103,6 +125,7 @@ public class DrawingView extends View {
         canvas.drawBitmap(canvasBitmap, 0, 0, canvasPaint);
         canvas.drawPath(drawPath, drawPaint);    }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         boolean ret_val = draw_point(event.getX(), event.getY(), event.getAction());
@@ -115,8 +138,8 @@ public class DrawingView extends View {
         try
         {
             JSONObject touch_point = new JSONObject();
-            touch_point.put("x", touchX);
-            touch_point.put("y", touchY);
+            touch_point.put("x", touchX * ((float)255.0/mWidth));
+            touch_point.put("y", touchY * ((float)255.0/mHeight));
             switch (eventAction) {
                 case MotionEvent.ACTION_DOWN:
                     drawPath.moveTo(touchX, touchY);
@@ -138,14 +161,13 @@ public class DrawingView extends View {
         }
         catch(Exception e)
         {
-
+            Log.e("TESTING", "Exception in draw_point: " + e.getMessage());
         }
         return true;
     }
 
     public void clear_canvas()
     {
-        //numberOfPoints = 0;
         mDrawingPoints = new JSONArray();
         canvasBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
         canvasBitmap.eraseColor(backgroundColor);
@@ -190,10 +212,12 @@ public class DrawingView extends View {
             JSONObject json = new JSONObject(image_data);
             mDrawingPoints = new JSONArray(json.getString("Points"));
             canvasBitmap = DatabaseHelper.base64DecodeBitmap(json.getString("Image"));
+            Log.d("TESTING", "Width: " + canvasBitmap.getWidth() + "\tHeight: " + canvasBitmap.getHeight());
+
         }
         catch (Exception e)
         {
-
+            Log.e("TESTING", "Exception in setImage: " + e.getMessage());
         }
     }
     public JSONArray getToastPoints()
@@ -204,7 +228,7 @@ public class DrawingView extends View {
         }
         catch(Exception e)
         {
-
+            Log.e("TESTING", "Exception in getToastPoints: " + e.getMessage());
         }
         return ret_val;
     }
@@ -214,6 +238,16 @@ public class DrawingView extends View {
         Bitmap ret_val = Bitmap.createBitmap(800, 800, Bitmap.Config.ARGB_8888);
         ret_val.eraseColor(backgroundColor);
         return ret_val;
+    }
+
+    private static String getRestoreBitmapPath()
+    {
+        return ToastbrushApplication.getAppContext().getFilesDir() + "restore_bitmap.png";
+    }
+
+    private static String getRestorePointsPath()
+    {
+        return ToastbrushApplication.getAppContext().getFilesDir() + "restore_points.pnts";
     }
 }
 
