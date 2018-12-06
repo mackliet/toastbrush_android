@@ -41,6 +41,9 @@ public class DrawingView extends View {
 
     private int mWidth;
     private int mHeight;
+    private boolean line_started;
+    private float prev_x;
+    private float prev_y;
 
     public DrawingView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -101,6 +104,7 @@ public class DrawingView extends View {
         drawPaint.setStrokeJoin(Paint.Join.ROUND);
         drawPaint.setStrokeCap(Paint.Cap.ROUND);
         canvasPaint = new Paint(Paint.DITHER_FLAG);
+        boolean line_started = false;
     }
 
     @Override
@@ -138,26 +142,82 @@ public class DrawingView extends View {
         try
         {
             JSONObject touch_point = new JSONObject();
-            touch_point.put("x", touchX * ((float)255.0/mWidth));
-            touch_point.put("y", touchY * ((float)255.0/mHeight));
+            float updated_x = touchX * ((float)255.0/mWidth);
+            float updated_y = touchY * ((float)255.0/mHeight);
+            touch_point.put("x", updated_x);
+            touch_point.put("y", updated_y);
+
             switch (eventAction) {
                 case MotionEvent.ACTION_DOWN:
+                    line_started = true;
                     drawPath.moveTo(touchX, touchY);
                     mDrawingPoints.put(new JSONArray());
-                    ((JSONArray)mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                    ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
                     break;
                 case MotionEvent.ACTION_MOVE:
-                    drawPath.lineTo(touchX, touchY);
-                    ((JSONArray)mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
-                    break;
+                    if(line_started)
+                    {
+                        if (!(updated_x > 255 || updated_x < 0 || updated_y > 255 || updated_y < 0)) {
+                            drawPath.lineTo(touchX, touchY);
+                            ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                            break;
+                        }
+                    }
+                    else if(!(updated_x > 255 || updated_x < 0 || updated_y > 255 || updated_y < 0))
+                    {
+                        float updated_prevX = prev_x * (float)(255.0/mWidth);
+                        float updated_prevY = prev_y * (float)(255.0/mWidth);
+                        if(updated_prevX > 255)
+                        {
+                            updated_prevX = 255;
+                        }
+                        if (updated_prevX < 0) {
+                            updated_prevX = 0;
+                        }
+                        if (updated_prevY > 255) {
+                            updated_prevY = 255;
+                        }
+                        if (updated_prevY < 0) {
+                            updated_prevY = 0;
+                        }
+                        line_started = true;
+                        JSONObject prev_touch_point = new JSONObject();
+                        prev_touch_point.put("x", updated_prevX);
+                        prev_touch_point.put("y", updated_prevY);
+                        drawPath.moveTo(prev_x, prev_y);
+                        mDrawingPoints.put(new JSONArray());
+                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(prev_touch_point);
+
+                        drawPath.lineTo(touchX, touchY);
+                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                        break;
+                    }
                 case MotionEvent.ACTION_UP:
-                    drawCanvas.drawPath(drawPath, drawPaint);
-                    ((JSONArray)mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
-                    drawPath.reset();
+                    if(line_started) {
+                        if (updated_x > 255) {
+                            updated_x = 255;
+                        }
+                        if (updated_x < 0) {
+                            updated_x = 0;
+                        }
+                        if (updated_y > 255) {
+                            updated_y = 255;
+                        }
+                        if (updated_y < 0) {
+                            updated_y = 0;
+                        }
+                        drawPath.lineTo(touchX, touchY);
+                        drawCanvas.drawPath(drawPath, drawPaint);
+                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                        drawPath.reset();
+                        line_started = false;
+                    }
                     break;
                 default:
                     return false;
             }
+            prev_x = touchX;
+            prev_y = touchY;
         }
         catch(Exception e)
         {
