@@ -54,6 +54,7 @@ public class GCodeBuilder
         int ret_y = (int)y;
         ret_y = ret_y > 255 ? 255 : ret_y;
         ret_y = ret_y < 0 ? 0 : ret_y;
+        ret_y = -ret_y + 255;
         return ret_y;
     }
 
