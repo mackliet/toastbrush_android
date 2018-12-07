@@ -23,7 +23,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SearchView;
+import android.support.v7.widget.SearchView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -83,6 +83,7 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
         setupSpinners(this_view);
         mSearchView = (SearchView)this_view.findViewById(R.id.onlineSearchView);
         mSearchView.setOnQueryTextListener(this);
+        search("");
         return this_view;
     }
 
@@ -112,10 +113,16 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
     @Override
     public boolean onQueryTextSubmit(String s) {
         String query = mSearchView.getQuery().toString();
+        Toast.makeText(getContext(), "Searching " + query + "...", Toast.LENGTH_SHORT).show();
+        search(s);
+        return false;
+    }
+
+    public void search(String query)
+    {
         String type = mSearchTypeSpinner.getSelectedItem().toString();
         String order = mOrderSpinner.getSelectedItem().toString();
         ToastbrushWebAPI.OrderValue orderValue = ToastbrushWebAPI.OrderValue.NEWEST;
-        Toast.makeText(getContext(), "Searching " + query + "...", Toast.LENGTH_SHORT).show();
         switch(order)
         {
             case "Newest":
@@ -167,7 +174,7 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
                             }
                             else
                             {
-                               item.mVote = ToastbrushWebAPI.VoteValue.NO_VOTE;
+                                item.mVote = ToastbrushWebAPI.VoteValue.NO_VOTE;
                             }
                         }
                         mToastImageList.add(item);
@@ -269,14 +276,10 @@ public class OnlineBrowseFragment extends Fragment implements SearchView.OnQuery
             default:
                 break;
         }
-
-        return false;
     }
 
     @Override
-    public boolean onQueryTextChange(String s) {
-        return false;
-    }
+    public boolean onQueryTextChange(String s) { return false; }
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {

@@ -42,6 +42,8 @@ public class BLEGatt extends BluetoothGattCallback {
     private BluetoothGattCharacteristic rx;
     private String data;
     private int mPacketCounter;
+    private boolean mPrinting;
+    private boolean mWaitingToStart;
     private Queue<String> mSendQueue;
 
     private int mConnectionState = STATE_DISCONNECTED;
@@ -71,6 +73,8 @@ public class BLEGatt extends BluetoothGattCallback {
         mBluetoothAdapter = Objects.requireNonNull(mBluetoothManager).getAdapter();
         mSendQueue = new LinkedBlockingDeque<>();
         mPacketCounter = -1;
+        mPrinting = false;
+        mWaitingToStart = false;
     }
 
     public BLEGatt enableBluetooth(Activity context)
@@ -117,73 +121,88 @@ public class BLEGatt extends BluetoothGattCallback {
     }
 
     // Various callback methods defined by the BLE API.
-    private final BluetoothGattCallback mGattCallback =
-            new BluetoothGattCallback() {
-                @Override
-                public void onConnectionStateChange(BluetoothGatt gatt, int status,
-                                                    int newState) {
-                    if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        Log.i(TAG, "Connected to GATT server.");
-                        try {
-                            Thread.sleep(600);
-                            mConnectionState = STATE_CONNECTED;
-                        }catch(Exception e)
-                        {
-                            Log.i(TAG, "Exception in onConnectionStateChange: " + e.getMessage());
-                        }
-                        Log.i(TAG, "Attempting to start service discovery:" +
-                                mBluetoothGatt.discoverServices());
+    private final BluetoothGattCallback mGattCallback;
 
-                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                        mConnectionState = STATE_DISCONNECTED;
-                        Log.i(TAG, "Disconnected from GATT server.");
-                    }
-                }
-
-                @Override
-                public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                    Log.i(TAG, "Service Discovered");
-                    super.onServicesDiscovered(gatt, status);
-                    tx = gatt.getService(SERVICE_UUID).getCharacteristic(TX_CHAR_UUID);
-                    rx = gatt.getService(SERVICE_UUID).getCharacteristic(RX_CHAR_UUID);
-
-                    gatt.setCharacteristicNotification(tx, true);
-
-                    BluetoothGattDescriptor desc = tx.getDescriptor(CLIENT_CHARACTERISTIC_CONFIG_UUID);
-                    Log.i(TAG, "Getting value: " + desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE));
-                    //desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                    Log.i(TAG, "Write descriptor: " + gatt.writeDescriptor(desc));
-                    //gatt.writeDescriptor(desc);
-
-                }
-
-                @Override
-                public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-                    Log.i(TAG, characteristic.getStringValue(0) + "  " + characteristic.toString());
-                    data = characteristic.getStringValue(0);
+    {
+        mGattCallback = new BluetoothGattCallback() {
+            @Override
+            public void onConnectionStateChange(BluetoothGatt gatt, int status,
+                                                int newState) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    Log.i(TAG, "Connected to GATT server.");
                     try {
-                        int requestedPacket = parseInt(data);
-                        if (requestedPacket > mPacketCounter && !writeInProgress){
+                        Thread.sleep(600);
+                        mConnectionState = STATE_CONNECTED;
+                    } catch (Exception e) {
+                        Log.i(TAG, "Exception in onConnectionStateChange: " + e.getMessage());
+                    }
+                    Log.i(TAG, "Attempting to start service discovery:" +
+                            mBluetoothGatt.discoverServices());
+
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    mConnectionState = STATE_DISCONNECTED;
+                    Log.i(TAG, "Disconnected from GATT server.");
+                }
+            }
+
+            @Override
+            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                Log.i(TAG, "Service Discovered");
+                super.onServicesDiscovered(gatt, status);
+                tx = gatt.getService(SERVICE_UUID).getCharacteristic(TX_CHAR_UUID);
+                rx = gatt.getService(SERVICE_UUID).getCharacteristic(RX_CHAR_UUID);
+
+                gatt.setCharacteristicNotification(tx, true);
+
+                BluetoothGattDescriptor desc = tx.getDescriptor(CLIENT_CHARACTERISTIC_CONFIG_UUID);
+                Log.i(TAG, "Getting value: " + desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE));
+                //desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                Log.i(TAG, "Write descriptor: " + gatt.writeDescriptor(desc));
+                //gatt.writeDescriptor(desc);
+
+            }
+
+            @Override
+            public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+                Log.i(TAG, characteristic.getStringValue(0) + "  " + characteristic.toString());
+                data = characteristic.getStringValue(0);
+                Log.d("TOASTER", "RECEIVED: " + data);
+                try {
+                    if (data.equals("start")) {
+                        mPrinting = true;
+                        mWaitingToStart = false;
+                        Toast.makeText(getAppContext(), "Started Toasting", Toast.LENGTH_SHORT).show();
+
+                    } else if (data.equals("cancelled")) {
+                        mPrinting = false;
+                        Toast.makeText(getAppContext(), "Cancelled Toast Job", Toast.LENGTH_SHORT).show();
+                    } else if (data.equals("end")) {
+                        mPrinting = false;
+                        Toast.makeText(getAppContext(), "Finished Toasting", Toast.LENGTH_SHORT).show();
+                    } else {
+                        int requested = parseInt(data);
+                        if (requested > mPacketCounter && !writeInProgress) {
                             sendChunk();
                         }
                     }
-                    catch(Exception e)
-                    {
-                        Log.e("TESTING", "Failed to parse packet");
-                    }
-
+                } catch (Exception e) {
+                    Log.e("TESTING", "Failed to parse packet");
                 }
 
-                @Override
-                public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                    super.onCharacteristicWrite(gatt, characteristic, status);
+            }
 
-                    if (status == BluetoothGatt.GATT_SUCCESS) {
-                        Log.d(TAG,"Characteristic write successful");
-                    }
-                    writeInProgress = false;
+            @Override
+            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                super.onCharacteristicWrite(gatt, characteristic, status);
+
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.d(TAG, "Characteristic write successful");
                 }
-            };
+                writeInProgress = false;
+            }
+        };
+    }
+
     public boolean isConnected()
     {
         boolean ret_val = mDevice != null && mConnectionState == STATE_CONNECTED && mBluetoothAdapter.isEnabled();
@@ -193,17 +212,29 @@ public class BLEGatt extends BluetoothGattCallback {
         }
         return  ret_val;
     }
-    public boolean readyToSend() { return mSendQueue.isEmpty() && isConnected();}
+    public boolean readyToSend() { return mSendQueue.isEmpty() && !mWaitingToStart && isConnected() && !mPrinting;}
 
     public String getData()
     {
         return data;
     }
 
+    public void cancel_print()
+    {
+        mSendQueue.clear();
+        mPacketCounter = -1;
+        mWaitingToStart = false;
+        send("CANCEL");
+    }
+
     public void sendData(String s)
     {
         ArrayList<String> instructions = new ArrayList<>(Arrays.asList(s.split("\n")));
         String compressed;
+        if(instructions.size() > 0)
+        {
+            mWaitingToStart = true;
+        }
         for(String instruction : instructions)
         {
             if(instruction.equals("M30"))
@@ -290,11 +321,19 @@ public class BLEGatt extends BluetoothGattCallback {
         {
             if(readyToSend())
             {
-                state = "Ready to Print";
+                state = "Ready to toast";
+            }
+            else if (mPrinting)
+            {
+                state = "Toasting";
+            }
+            else if (!mSendQueue.isEmpty() || mWaitingToStart)
+            {
+                state = "Sending image";
             }
             else
             {
-                state = "Waiting for printer...";
+                state = "Waiting for toaster...";
             }
         }
         return state;

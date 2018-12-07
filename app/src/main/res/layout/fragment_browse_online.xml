@@ -14,11 +14,11 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <SearchView
+        <com.toastbrush.toastbrush_android.EmptySubmitSearchView
             android:id="@+id/onlineSearchView"
             android:layout_width="match_parent"
             android:layout_height="?android:attr/actionBarSize"
-            android:iconifiedByDefault="false"/>
+            app:iconifiedByDefault="false"/>
 
         <LinearLayout
             xmlns:android="http://schemas.android.com/apk/res/android"

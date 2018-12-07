@@ -5,8 +5,10 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +18,7 @@ import android.widget.Toast;
 
 import com.toastbrush.ToastbrushApplication;
 
+import static com.toastbrush.ToastbrushApplication.getAppContext;
 import static com.toastbrush.ToastbrushApplication.getGoogleAccount;
 
 
@@ -67,6 +70,26 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
             bundle.remove("Image_data");
         }
         ToastbrushApplication.setupBluetoothServer(getActivity());
+        final Handler handler = new Handler();
+// Define the code block to be executed
+        Runnable runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                String state = ToastbrushApplication.getBluetoothServer().getState();
+                Log.d("STATE", state);
+                if(state.equals("Toasting") || state.equals("Sending image"))
+                {
+                    mToastButton.setText("Cancel");
+                }
+                else
+                {
+                    mToastButton.setText("Toast");
+                }
+                handler.postDelayed(this, 500);
+            }
+        };
+        // Run the above code block on the main thread after 1 seconds
+        handler.post(runnableCode);
         return mThis;
     }
 
@@ -127,15 +150,16 @@ public class CreateImageFragment extends Fragment implements View.OnClickListene
                 {
                     Toast.makeText(getContext(),"Not connected to toaster",Toast.LENGTH_SHORT).show();
                 }
-                else if(!ToastbrushApplication.getBluetoothServer().readyToSend())
+                else if(mToastButton.getText().toString().equals("Cancel"))
                 {
-                    Toast.makeText(getContext(),"Toaster not ready to receive image",Toast.LENGTH_SHORT).show();
+                    ToastbrushApplication.getBluetoothServer().cancel_print();
+                    Toast.makeText(getAppContext(),"Cancelling Toast Print",Toast.LENGTH_SHORT).show();
                 }
                 else
                 {
                     String gCode = GCodeBuilder.convertToGcode(mDrawingView.getToastPoints());
                     ToastbrushApplication.getBluetoothServer().sendData(gCode);
-                    Toast.makeText(getContext(),"Image sent to toaster",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getAppContext(),"Image sent to toaster",Toast.LENGTH_SHORT).show();
                 }
 
                 break;

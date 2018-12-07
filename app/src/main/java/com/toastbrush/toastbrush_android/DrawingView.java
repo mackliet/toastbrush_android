@@ -208,6 +208,9 @@ public class DrawingView extends View {
                         }
                         drawPath.lineTo(touchX, touchY);
                         drawCanvas.drawPath(drawPath, drawPaint);
+                        touch_point = new JSONObject();
+                        touch_point.put("x", updated_x);
+                        touch_point.put("y", updated_y);
                         ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
                         drawPath.reset();
                         line_started = false;
