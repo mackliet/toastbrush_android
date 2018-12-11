@@ -120,7 +120,7 @@ public class DrawingView extends View {
         {
             canvasBitmap = Bitmap.createScaledBitmap(canvasBitmap, mWidth, mHeight, false);
         }
-        drawPaint.setStrokeWidth((4*mWidth)/100);
+        drawPaint.setStrokeWidth((5*mWidth)/100);
         drawCanvas = new Canvas(canvasBitmap);
     }
 
@@ -139,92 +139,87 @@ public class DrawingView extends View {
 
     private boolean draw_point(float touchX, float touchY, int eventAction)
     {
-        try
-        {
-            JSONObject touch_point = new JSONObject();
-            float updated_x = touchX * ((float)255.0/mWidth);
-            float updated_y = touchY * ((float)255.0/mHeight);
-            touch_point.put("x", updated_x);
-            touch_point.put("y", updated_y);
+        synchronized(this) {
+            try {
+                JSONObject touch_point = new JSONObject();
+                float updated_x = touchX * ((float) 255.0 / mWidth);
+                float updated_y = touchY * ((float) 255.0 / mHeight);
+                touch_point.put("x", updated_x);
+                touch_point.put("y", updated_y);
 
-            switch (eventAction) {
-                case MotionEvent.ACTION_DOWN:
-                    line_started = true;
-                    drawPath.moveTo(touchX, touchY);
-                    mDrawingPoints.put(new JSONArray());
-                    ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    if(line_started)
-                    {
-                        if (!(updated_x > 255 || updated_x < 0 || updated_y > 255 || updated_y < 0)) {
+                switch (eventAction) {
+                    case MotionEvent.ACTION_DOWN:
+                        line_started = true;
+                        drawPath.moveTo(touchX, touchY);
+                        mDrawingPoints.put(new JSONArray());
+                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (line_started) {
+                            if (!(updated_x > 255 || updated_x < 0 || updated_y > 255 || updated_y < 0)) {
+                                drawPath.lineTo(touchX, touchY);
+                                ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                                break;
+                            }
+                        } else if (!(updated_x > 255 || updated_x < 0 || updated_y > 255 || updated_y < 0)) {
+                            float updated_prevX = prev_x * (float) (255.0 / mWidth);
+                            float updated_prevY = prev_y * (float) (255.0 / mWidth);
+                            if (updated_prevX > 255) {
+                                updated_prevX = 255;
+                            }
+                            if (updated_prevX < 0) {
+                                updated_prevX = 0;
+                            }
+                            if (updated_prevY > 255) {
+                                updated_prevY = 255;
+                            }
+                            if (updated_prevY < 0) {
+                                updated_prevY = 0;
+                            }
+                            line_started = true;
+                            JSONObject prev_touch_point = new JSONObject();
+                            prev_touch_point.put("x", updated_prevX);
+                            prev_touch_point.put("y", updated_prevY);
+                            drawPath.moveTo(prev_x, prev_y);
+                            mDrawingPoints.put(new JSONArray());
+                            ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(prev_touch_point);
+
                             drawPath.lineTo(touchX, touchY);
                             ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
                             break;
                         }
-                    }
-                    else if(!(updated_x > 255 || updated_x < 0 || updated_y > 255 || updated_y < 0))
-                    {
-                        float updated_prevX = prev_x * (float)(255.0/mWidth);
-                        float updated_prevY = prev_y * (float)(255.0/mWidth);
-                        if(updated_prevX > 255)
-                        {
-                            updated_prevX = 255;
+                    case MotionEvent.ACTION_UP:
+                        if (line_started) {
+                            if (updated_x > 255) {
+                                updated_x = 255;
+                            }
+                            if (updated_x < 0) {
+                                updated_x = 0;
+                            }
+                            if (updated_y > 255) {
+                                updated_y = 255;
+                            }
+                            if (updated_y < 0) {
+                                updated_y = 0;
+                            }
+                            drawPath.lineTo(touchX, touchY);
+                            drawCanvas.drawPath(drawPath, drawPaint);
+                            touch_point = new JSONObject();
+                            touch_point.put("x", updated_x);
+                            touch_point.put("y", updated_y);
+                            ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
+                            drawPath.reset();
+                            line_started = false;
                         }
-                        if (updated_prevX < 0) {
-                            updated_prevX = 0;
-                        }
-                        if (updated_prevY > 255) {
-                            updated_prevY = 255;
-                        }
-                        if (updated_prevY < 0) {
-                            updated_prevY = 0;
-                        }
-                        line_started = true;
-                        JSONObject prev_touch_point = new JSONObject();
-                        prev_touch_point.put("x", updated_prevX);
-                        prev_touch_point.put("y", updated_prevY);
-                        drawPath.moveTo(prev_x, prev_y);
-                        mDrawingPoints.put(new JSONArray());
-                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(prev_touch_point);
-
-                        drawPath.lineTo(touchX, touchY);
-                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
                         break;
-                    }
-                case MotionEvent.ACTION_UP:
-                    if(line_started) {
-                        if (updated_x > 255) {
-                            updated_x = 255;
-                        }
-                        if (updated_x < 0) {
-                            updated_x = 0;
-                        }
-                        if (updated_y > 255) {
-                            updated_y = 255;
-                        }
-                        if (updated_y < 0) {
-                            updated_y = 0;
-                        }
-                        drawPath.lineTo(touchX, touchY);
-                        drawCanvas.drawPath(drawPath, drawPaint);
-                        touch_point = new JSONObject();
-                        touch_point.put("x", updated_x);
-                        touch_point.put("y", updated_y);
-                        ((JSONArray) mDrawingPoints.get(mDrawingPoints.length() - 1)).put(touch_point);
-                        drawPath.reset();
-                        line_started = false;
-                    }
-                    break;
-                default:
-                    return false;
+                    default:
+                        return false;
+                }
+                prev_x = touchX;
+                prev_y = touchY;
+            } catch (Exception e) {
+                Log.e("TESTING", "Exception in draw_point: " + e.getMessage());
             }
-            prev_x = touchX;
-            prev_y = touchY;
-        }
-        catch(Exception e)
-        {
-            Log.e("TESTING", "Exception in draw_point: " + e.getMessage());
         }
         return true;
     }
